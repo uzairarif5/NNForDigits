@@ -42,11 +42,13 @@ else:
       labels2.append(labels[i])
       counter += 1
 
-def runSamples(index):
+def getSamples(index):
   arr = np.resize(np.array(images2[index]),(28,28))
+  '''
   if input("Press 1 if you want to view the images in command prompt: ") == "1":
     for i in range(len(images2[index])):
       for j in images2[index][i]:
         print(str(j).replace('0','  ').replace('53','. ').replace('178','o ').replace('255','# '),end="")
       print()
+  '''
   return (arr,labels2[index],indices[index])
