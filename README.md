@@ -1,7 +1,7 @@
 
 ## Coding a neural network to identify hand written numbers
 
-Lets see a small description of my project files and folders:
+Lets see a description of my project files and folders:
 - `initWeightAndBiases.py`:
   - Contains the function of setting weights and biases which will be used by the neural network. The function will run if you run the file.
   - Contains the sizes of the input layer (784), second hidden layer (256) and third hidden layer (128).
@@ -35,9 +35,25 @@ Lets see a small description of my project files and folders:
     - After training is done, the user has the option to save the weights and biases, train again using the same images or train again with different images.
 - `/imagesForBackPro`:
   - Contains my notes on my back propagation formulas (helps understand the back propagation algorithm in `trainNN.py`).
+- `kernel.py`:
+  - For CNN, this is the file that applies a kernel to an image.
+  - Running this file allows you to select an image, and see the "kerneled" images.
+- `downPool.py`:
+  - Contains a function to down size an image by half (using max pooling).
+  - Running this files allows you the select an image and downSize it twice.
+- `convolution.py`:
+  - Does filtering (from `kernel.py`), and down sizing (from `downPool.py`) on a range of images.
+  - Running this files allows you the select a range of images and apply convolution to them.
+  - Convolution currently is very slow, any recommendations to optimize will be appreciated.
+- `trainCNN.py`:
+  - Like `trainNN.py` but uses the images are convoluted instead of using them directly.
 
 If you want to inform my about any errors, or give me any suggestions, feel free to message me at my LinkedIn (linkedin.com/in/uzair0845).
 
 ### Updates
 
-update 1.1: First main update. Commits before this were to initialize my repository.
+<u>update 2.1:</u> Added `kernel.py`, `downPool.py`, `convolution.py` and `trainCNN.py`
+
+<u>update 1.2:</u> Made small changes to readme.md
+
+<u>update 1.1:</u> First main update. Commits before this were to initialize my repository.

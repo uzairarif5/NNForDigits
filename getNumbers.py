@@ -28,14 +28,13 @@ def getImagesFromMNIST():
     labels = []
     while i < endI:
       if i in bannedNumIndices:
-        i += 1
         print("index {} is banned".format(i))
+        i += 1
         continue
       images.append(rawImages[i])
       indices.append(i)
       labels.append(rawLabels[i])
       i += 1
-    images = np.array(images)
   else:
     print("choosing random images")
     numOfImages = int(input("Choose the number to use (more than 1 and less than {}): ".format(maxIndex)))
@@ -47,9 +46,11 @@ def getImagesFromMNIST():
     for i in indices:
       images.append(rawImages[i])
       labels.append(rawLabels[i])
-    images = np.array(images)
   print("Selected Indices: ", indices)
-  return (images, labels, indices)
+  return (np.array(images), labels, indices)
+
+def getOneImageFromMNIST(index):
+  return (np.array(rawImages[index]), rawLabels[index])
 
 def getLabelsOfOwnImages():
     file = open(dir_path + "/ownDatasetStuff/ownLabels.txt","r")

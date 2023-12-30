@@ -5,20 +5,23 @@ import getNumbers
 from initWeightsAndBiases import initWeightsAndBiases, inputArrSize, hiddenL1ArrSize, hiddenL2ArrSize
 from showNumbers import showImgsOnPlt
 from threading import Timer
+from convolution import doubleConv
 
 INIT_LEARNING_RATE = 0.01
 MAX_UPDATES = 50 #max number of updates before new batch
 MIN_ERR = 0.01 #during updates, if loss is lower than MIN_ERR, than a new batch is used
 dir_path = os.path.dirname(os.path.realpath(__file__))
 
-images = None
+convolutedImgs = None
 labels = None
 indices = None
 #get images
 if(input("Press 1 to use mnist\n") == "1"):
     [images, labels, indices] = getNumbers.getImagesFromMNIST()
+    convolutedImgs = doubleConv(images)
 else:
     images = getNumbers.getOwnImages()
+    convolutedImgs = doubleConv(images)
     labels = getNumbers.getLabelsOfOwnImages()
     indices = list(range(len(labels)))
 
@@ -55,7 +58,7 @@ def forwardPropagate(printOutput: bool):
     wAndBDict = weightsAndBiasesDict
     errorArr = np.zeros(10, dtype=np.float32)
     numOfCorrectAns = 0
-    inputArr = images.reshape((batchSize, inputArrSize))/255
+    inputArr = convolutedImgs.reshape((batchSize, inputArrSize))/255
     hiddenL1Arr = 1/(1+np.exp(-((inputArr @ wAndBDict["link12"]) + wAndBDict["biases2"])))
     hiddenL2Arr = 1/(1+np.exp(-((hiddenL1Arr @ wAndBDict["link23"]) + wAndBDict["biases3"])))
     outputArr = 1/(1+np.exp(-((hiddenL2Arr @ wAndBDict["link34"]) + wAndBDict["biases4"])))
@@ -87,7 +90,7 @@ def backPropagate(learningRate):
     print("weights updated")
 
 def doTraining():
-    global images, labels, indices
+    global convolutedImgs, labels, indices
     lastLR = INIT_LEARNING_RATE
     while True:
         printOutput = input("Press 1 to print output array on each forward propagation: ") == "1"
@@ -107,6 +110,7 @@ def doTraining():
         if(input("Press 1 to repeat training with same images: ") != "1"):
             if(input("Press 1 to repeat training with different images (from MNIST), otherwise quit: ") == "1"):
                 [images, labels, indices] = getNumbers.getImagesFromMNIST()
+                convolutedImgs = doubleConv(images)
                 setInitVar()
             else:
                 print("bye")
