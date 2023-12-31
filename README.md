@@ -46,11 +46,18 @@ Lets see a description of my project files and folders:
   - Running this files allows you the select a range of images and apply convolution to them.
   - Convolution currently is very slow, any recommendations to optimize will be appreciated.
 - `trainCNN.py`:
-  - Like `trainNN.py` but uses the images are convoluted instead of using them directly.
+  - Like `trainNN.py` but the images are convoluted instead of using them directly.
 
 If you want to inform my about any errors, or give me any suggestions, feel free to message me at my LinkedIn (linkedin.com/in/uzair0845).
 
 ### Updates
+
+<u>update 3.1:</u>
+- The maxpooling function and the filtering function are now vectorized, so convolution is now faster.
+- In `trainCNN.py`, I have changed the way the progress is shown, instead of printing a new line in each update, there is now a progress bar in shown one line. That line also shows the current error value and the number of correct predictions.
+- In `trainCNN.py`, added the option to view the output layer of last input array in the training loop.
+- `train.py` does not show images in matplotlib anymore.
+- In `showNumbers.py` and `getNumbers.py`, I added an option to view images from pre-selected indices
 
 <u>update 2.1:</u> Added `kernel.py`, `downPool.py`, `convolution.py` and `trainCNN.py`
 

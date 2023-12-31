@@ -1,6 +1,5 @@
 
-from getNumbers import maxIndex, getOneImageFromMNIST
-import time
+from getNumbers import maxIndex, getImagesFromMNIST
 from showNumbers import showImgsOnPlt
 import numpy as np
 
@@ -27,12 +26,17 @@ kernels = np.array([
   ],
 ])
 
+
+def convColumn(rowNum, k, img):
+  r = rowNum[0]
+  if(r ==0 or r == len(img)-1):
+    return np.zeros(len(img))
+  return (np.convolve(img[r-1], k[0]) + np.convolve(img[r], k[1]) + np.convolve(img[r+1], k[2]))[1:-1]
+
 def applyOneKernel(k, img):
-  curOutputArr = np.zeros((len(img),len(img[0])))
-  for r in range(1, len(curOutputArr)-1):
-    for c in range(1, len(curOutputArr[0])-1):
-      curOutputArr[r][c] += np.sum(img[r-1:r+2, c-1:c+2] * k)
-  return curOutputArr
+  rowNums = np.arange(len(img)).reshape((len(img),1))
+  mulRVec = np.vectorize(convColumn, signature="(r), (i, j), (n, m) -> (x)")
+  return mulRVec(rowNums, k, img)
 
 def applyKernels(img):
   applyOneKerVec = np.vectorize(applyOneKernel, signature="(k1, k2), (n, m) -> (i, j)")
@@ -41,9 +45,8 @@ def applyKernels(img):
 
 if __name__ == '__main__':
   #run this file to test kernels
-  index = maxIndex
-  while (index >= maxIndex or index < 0):
-    index = int(input("Type image id (max {}): ".format(maxIndex)))
-  img, label = getOneImageFromMNIST(index)
-  showImgsOnPlt(applyKernels(img), [label]*(len(kernels)), [index]*(len(kernels)))
+  imgs, labels, indices, = getImagesFromMNIST()
+  applyKernelVec = np.vectorize(applyKernels, signature="(m, n) -> (i, j, k)")
+  filterImages = applyKernelVec(imgs).reshape(4 * len(imgs), 28, 28)
+  showImgsOnPlt(filterImages, np.repeat(labels, 4), np.repeat(indices, 4))
   

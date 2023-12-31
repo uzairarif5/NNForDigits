@@ -1,5 +1,5 @@
 
-from getNumbers import maxIndex, getOneImageFromMNIST
+from getNumbers import maxIndex, getImagesFromMNIST
 from showNumbers import showImgsOnPlt
 import numpy as np
 from skimage.util.shape import view_as_blocks
@@ -9,11 +9,10 @@ def downSizeByHalf(img):
 
 if __name__ == '__main__':
   #run this file to test down pooling
-  index = maxIndex
-  while (index >= maxIndex or index < 0):
-    index = int(input("Type image id (max {}): ".format(maxIndex)))
-  img, label = getOneImageFromMNIST(index)
-  img2 = downSizeByHalf(img)
-  img3 = downSizeByHalf(img2)
-  showImgsOnPlt([img, img2, img3], [label]*3, [index]*3)
+  imgs, labels, indices = getImagesFromMNIST()
+  downSizeVectorized = np.vectorize(downSizeByHalf, signature="(m, n) -> (i, j)")
+  smallImages = downSizeVectorized(imgs)
+  downSizeVectorized = np.vectorize(downSizeByHalf, signature="(m, n) -> (i, j)")
+  smallImages2 = downSizeVectorized(smallImages)
+  showImgsOnPlt(smallImages2, labels, indices)
   

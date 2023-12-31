@@ -3,12 +3,10 @@ import numpy as np
 import os
 import getNumbers
 from initWeightsAndBiases import initWeightsAndBiases, inputArrSize, hiddenL1ArrSize, hiddenL2ArrSize
-from showNumbers import showImgsOnPlt
-from threading import Timer
 from convolution import doubleConv
 
-INIT_LEARNING_RATE = 0.01
-MAX_UPDATES = 50 #max number of updates before new batch
+INIT_LEARNING_RATE = 0.001
+MAX_UPDATES = 1000 #max number of updates before new batch
 MIN_ERR = 0.01 #during updates, if loss is lower than MIN_ERR, than a new batch is used
 dir_path = os.path.dirname(os.path.realpath(__file__))
 
@@ -53,29 +51,30 @@ def setInitVar():
     outputArr = np.ndarray((batchSize,10), dtype=np.float16)
     correctPosArr = np.zeros((batchSize,10), dtype='int')
 
-def forwardPropagate(printOutput: bool):
-    global inputArr, hiddenL1Arr, hiddenL2Arr, outputArr, correctPosArr
+def getIncorrect(i):
+    global errorIndices, numOfCorrectAns, correctPosArr, errorArr
+    correctPosArr[i][labels[i]] = 1
+    errorArr += np.square(outputArr[i] - correctPosArr[i])/2
+    if (np.argmax(outputArr[i]) == labels[i]):
+        numOfCorrectAns += 1
+    else:
+        errorIndices.append(i)
+
+def forwardPropagate():
+    global inputArr, hiddenL1Arr, hiddenL2Arr, outputArr, errorIndices, numOfCorrectAns, errorArr
     wAndBDict = weightsAndBiasesDict
-    errorArr = np.zeros(10, dtype=np.float32)
-    numOfCorrectAns = 0
     inputArr = convolutedImgs.reshape((batchSize, inputArrSize))/255
     hiddenL1Arr = 1/(1+np.exp(-((inputArr @ wAndBDict["link12"]) + wAndBDict["biases2"])))
     hiddenL2Arr = 1/(1+np.exp(-((hiddenL1Arr @ wAndBDict["link23"]) + wAndBDict["biases3"])))
     outputArr = 1/(1+np.exp(-((hiddenL2Arr @ wAndBDict["link34"]) + wAndBDict["biases4"])))
-    for i in range(len(labels)):
-        if printOutput:
-            print("output{:<2d}:".format(i), str(["%5.4f" % x for x in outputArr[i]]).replace(",","").replace("\'",""),"myAns: {}; correctAns: {}".format(np.argmax(outputArr[i]), labels[i]))
-        correctPosArr[i][labels[i]] = 1
-        numOfCorrectAns += 1 if (np.argmax(outputArr[i]) == labels[i]) else 0
-        errorArr += np.square(outputArr[i] - correctPosArr[i])/2
-    print("number of correct answers: {}/{}".format(numOfCorrectAns, len(labels)))
-    avgErr = np.sum(errorArr)/len(labels)
-    print("Average Error: {}".format(avgErr))
-    return avgErr
+    errorIndices = []
+    numOfCorrectAns = 0
+    errorArr = np.zeros(10, dtype=np.float32)
+    getIncVec = np.vectorize(getIncorrect, otypes=[None])
+    getIncVec(np.arange(len(labels)))
 
 def backPropagate(learningRate):
     global weightsAndBiasesDict
-    print("adjusting weights")
     wAndBDict = weightsAndBiasesDict
     repeatedCalculationArr = learningRate * (outputArr - correctPosArr) * (outputArr) * (1-outputArr)
     wAndBDict["link34"] -= np.transpose(hiddenL2Arr) @ repeatedCalculationArr
@@ -87,34 +86,44 @@ def backPropagate(learningRate):
     wAndBDict["link12"] -= np.transpose(inputArr) @ repeatedCalArr3
     wAndBDict["biases2"] -= (np.ones(len(labels))/len(labels)) @ repeatedCalArr3
     weightsAndBiasesDict = wAndBDict
-    print("weights updated")
 
 def doTraining():
-    global convolutedImgs, labels, indices
+    global convolutedImgs, labels, indices, errorArr
     lastLR = INIT_LEARNING_RATE
     while True:
-        printOutput = input("Press 1 to print output array on each forward propagation: ") == "1"
         if (input("Press 1 to use a new learning rate (current value: {}): ".format(lastLR)) == "1"):
             inputVal= -1
             while(inputVal < 0 or inputVal > 1):
                 inputVal = float(input("Choose num between 0 and 1: "))
             lastLR = inputVal
         for updates in range(MAX_UPDATES):
-            avgErr = forwardPropagate(printOutput)
+            forwardPropagate()
             backPropagate(lastLR)
-            print("{} updates completed".format(updates+1))
+            #print("{} updates completed".format(updates+1))
+            avgErr = np.sum(errorArr)/len(indices)
             if(avgErr < MIN_ERR):
                 break
+            print(("█"*round((updates+1)*10/MAX_UPDATES)) + ("_"*round(10-((updates+1)*10/MAX_UPDATES))) + " {:4d}%".format(round((updates+1)*100/MAX_UPDATES)) + " | current error: {:6.5f}".format(avgErr) + " | number of correct prediction (out of {}): {}".format(len(indices), numOfCorrectAns),end="\r")
+        print("\nError indices:\n", indices[errorIndices])
+        print("Total:",len(indices[errorIndices]))
+        if(input("Press 1 to view error labels: ") == "1"):
+            print(labels[errorIndices])
+        if(input("Press 1 to view output layers for last input: ") == "1"):
+            for i in range(len(labels)):
+                print("output{:<2d}:".format(i), str(["%5.4f" % x for x in outputArr[i]]).replace(",","").replace("\'",""),"myAns: {}; correctAns: {}".format(np.argmax(outputArr[i]), labels[i]))
         if(input("Press 1 to save weights and biases: ") == "1"):
             saveValues()
-        if(input("Press 1 to repeat training with same images: ") != "1"):
-            if(input("Press 1 to repeat training with different images (from MNIST), otherwise quit: ") == "1"):
-                [images, labels, indices] = getNumbers.getImagesFromMNIST()
-                convolutedImgs = doubleConv(images)
-                setInitVar()
-            else:
-                print("bye")
-                break
+        if(input("Press 1 to repeat training with the incorrect indices: ") == "1"):
+            convolutedImgs = convolutedImgs[errorIndices]
+            labels = labels[errorIndices]
+            indices = indices[errorIndices]
+        elif(input("Press 1 to repeat training with different images (from MNIST), otherwise quit: ") == "1"):
+            [images, labels, indices] = getNumbers.getImagesFromMNIST()
+            convolutedImgs = doubleConv(images)
+        else:
+            print("bye")
+            break
+        setInitVar()
 
 def saveValues():
     global dir_path
@@ -145,9 +154,7 @@ def saveValues():
 
 if(__name__ == "__main__"):
     setInitVar()
-    t1 = Timer(1.0, doTraining)
-    t1.start()
-    showImgsOnPlt(images, labels, indices)
+    doTraining()
     
     '''
     SHAPES:
