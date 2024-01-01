@@ -26,12 +26,14 @@ kernels = np.array([
   ],
 ])
 
-
 def convColumn(rowNum, k, img):
   r = rowNum[0]
-  if(r ==0 or r == len(img)-1):
-    return np.zeros(len(img))
-  return (np.convolve(img[r-1], k[0]) + np.convolve(img[r], k[1]) + np.convolve(img[r+1], k[2]))[1:-1]
+  if(r ==0):
+    return (np.convolve(img[r], k[1]) + np.convolve(img[r+1], k[2]))[1:-1]
+  elif(r == len(img)-1):
+    return (np.convolve(img[r-1], k[0]) + np.convolve(img[r], k[1]))[1:-1]
+  else:
+    return (np.convolve(img[r-1], k[0]) + np.convolve(img[r], k[1]) + np.convolve(img[r+1], k[2]))[1:-1]
 
 def applyOneKernel(k, img):
   rowNums = np.arange(len(img)).reshape((len(img),1))

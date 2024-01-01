@@ -17,14 +17,17 @@ def filterReluDownpool(inputImage):
   return smallImages
 
 
-def doubleConv(inputImages):
-  print("Starting convolution...")
+def doubleConv(inputImages, allowPrint = True, flattenOutput = False):
+  if allowPrint: print("Starting convolution...") 
   filterReluDpVec = np.vectorize(filterReluDownpool, signature="(m, n) -> (i, j, k)")
   smallImages1 = filterReluDpVec(inputImages)
-  print("First convolution done")
-  smallImages2 = (filterReluDpVec(smallImages1)).reshape(len(inputImages),16, 7, 7)
-  print("Second convolution done")
-  return smallImages2
+  if allowPrint: print("First convolution done")
+  smallImages2 = filterReluDpVec(smallImages1)
+  if allowPrint: print("Second convolution done")
+  if(flattenOutput):
+    return smallImages2.reshape(len(inputImages), 784)
+  else:
+    return smallImages2.reshape(len(inputImages), 16, 7, 7)
 
 if __name__ == '__main__':
   [inputImages, inputLabels, inputIndices] = getNumbers.getImagesFromMNIST()

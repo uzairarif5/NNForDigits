@@ -1,27 +1,27 @@
 
 import numpy as np
 import os
-from getNumbers import getRandomImgsFromMNIST
+from getNumbers import geAllMNISTImgs, MAX_INDEX
 from initWeightsAndBiases import inputArrSize, hiddenL1ArrSize, hiddenL2ArrSize
 from convolution import doubleConv
 
-NUM_OF_TRAINING = 200
-LEARNING_RATE = 0.0015
-MAX_UPDATES = 1000
-MIN_ERR = 0.01
-NUM_OF_IMGS = 500
+NUM_OF_EPOCH = 3
+LEARNING_RATE = 0.001
+BATCH_SIZE = 200
+(IMAGES, LABELS) = geAllMNISTImgs()
+INDICES = np.arange(MAX_INDEX)
 
 #global Variables
 dir_path = os.path.dirname(os.path.realpath(__file__))
-batchSize = None
 inputArr = None
 hiddenL1Arr = None
 hiddenL2Arr = None
 outputArr = None
 correctPosArr = None
-convolutedImgs = None
+convolutedImgs = np.zeros((MAX_INDEX, inputArrSize))
 labels = None
 indices = None
+curImgIndPointer = 0
 
 def getWAndBDict():
     weightsAndBiasesDict = {
@@ -40,38 +40,32 @@ def getWAndBDict():
 
 weightsAndBiasesDict = getWAndBDict()
 
-def setInitVar():
-    global batchSize, inputArr, hiddenL1Arr, hiddenL2Arr, outputArr, correctPosArr, convolutedImgs, labels, indices
-    [images, labels, indices] = getRandomImgsFromMNIST(NUM_OF_IMGS)
-    convolutedImgs = doubleConv(images)
-    batchSize = len(labels)
-    inputArr = np.ndarray((batchSize, inputArrSize),dtype=np.float16)
-    hiddenL1Arr = np.ndarray((batchSize, hiddenL1ArrSize),dtype=np.float16)
-    hiddenL2Arr = np.ndarray((batchSize, hiddenL2ArrSize),dtype=np.float16)
-    outputArr = np.ndarray((batchSize,10), dtype=np.float16)
-    correctPosArr = np.zeros((batchSize,10), dtype='int')
+def setInitVar(startingInd, curEpoch):
+    global labels, indices, inputArr, hiddenL1Arr, hiddenL2Arr, outputArr, correctPosArr, convolutedImgs
+    if (curEpoch == 1):
+        convolutedImgs[startingInd: startingInd + BATCH_SIZE] = doubleConv(IMAGES[startingInd: startingInd + BATCH_SIZE], False, True)
+    labels = LABELS[startingInd: startingInd + BATCH_SIZE]
+    indices = INDICES[startingInd: startingInd + BATCH_SIZE]
+    inputArr = np.ndarray((BATCH_SIZE, inputArrSize),dtype=np.float16)
+    hiddenL1Arr = np.ndarray((BATCH_SIZE, hiddenL1ArrSize),dtype=np.float16)
+    hiddenL2Arr = np.ndarray((BATCH_SIZE, hiddenL2ArrSize),dtype=np.float16)
+    outputArr = np.ndarray((BATCH_SIZE,10), dtype=np.float16)
+    correctPosArr = np.zeros((BATCH_SIZE,10), dtype='int')
 
 def getIncorrect(i):
-    global errorIndices, numOfCorrectAns, correctPosArr, errorArr
+    global correctPosArr
     correctPosArr[i][labels[i]] = 1
-    errorArr += np.square(outputArr[i] - correctPosArr[i])/2
-    if (np.argmax(outputArr[i]) == labels[i]):
-        numOfCorrectAns += 1
-    else:
-        errorIndices.append(i)
 
-def forwardPropagate():
-    global inputArr, hiddenL1Arr, hiddenL2Arr, outputArr, errorIndices, numOfCorrectAns, errorArr
+def forwardPropagate(si):
+    global inputArr, hiddenL1Arr, hiddenL2Arr, outputArr, correctPosArr
     wAndBDict = weightsAndBiasesDict
-    inputArr = convolutedImgs.reshape((batchSize, inputArrSize))/255
+    inputArr = convolutedImgs[si: si + BATCH_SIZE]/255
     hiddenL1Arr = 1/(1+np.exp(-((inputArr @ wAndBDict["link12"]) + wAndBDict["biases2"])))
     hiddenL2Arr = 1/(1+np.exp(-((hiddenL1Arr @ wAndBDict["link23"]) + wAndBDict["biases3"])))
     outputArr = 1/(1+np.exp(-((hiddenL2Arr @ wAndBDict["link34"]) + wAndBDict["biases4"])))
-    errorIndices = []
-    numOfCorrectAns = 0
-    errorArr = np.zeros(10, dtype=np.float32)
     getIncVec = np.vectorize(getIncorrect, otypes=[None])
     getIncVec(np.arange(len(labels)))
+    return np.sum(np.argmax(outputArr, axis=1) == np.argmax(correctPosArr, axis=1))/BATCH_SIZE
 
 def backPropagate(learningRate):
     global weightsAndBiasesDict
@@ -88,19 +82,17 @@ def backPropagate(learningRate):
     weightsAndBiasesDict = wAndBDict
 
 def doTraining():
-    global convolutedImgs, labels, indices, errorArr
-    counter = 0
-    while counter < NUM_OF_TRAINING:
-      setInitVar()
-      for updates in range(MAX_UPDATES):
-          forwardPropagate()
-          backPropagate(LEARNING_RATE)
-          avgErr = np.sum(errorArr)/len(indices)
-          print(("█"*round((updates+1)*10/MAX_UPDATES)) + ("_"*round(10-((updates+1)*10/MAX_UPDATES))) + " {:4d}%".format(round((updates+1)*100/MAX_UPDATES)) + " | current error: {:6.5f}".format(avgErr) + " | number of correct prediction (out of {}): {}".format(len(indices), numOfCorrectAns),end="\r")
-          if(avgErr < MIN_ERR):
-              break
-      counter += 1
-      print("\nNumber of trainings done so far:", counter)
+    global curImgIndPointer
+    epoch = 1
+    while epoch <= NUM_OF_EPOCH:
+      while curImgIndPointer < MAX_INDEX:
+        setInitVar(curImgIndPointer, epoch)
+        accuracy = forwardPropagate(curImgIndPointer)
+        backPropagate(LEARNING_RATE)
+        curImgIndPointer += BATCH_SIZE
+        print("Epoch: {} | ".format(epoch) + ("█"*round((epoch+curImgIndPointer+1)*20/(NUM_OF_EPOCH+MAX_INDEX))) + ("_"*round(20-((epoch+curImgIndPointer+1)*20/(NUM_OF_EPOCH+MAX_INDEX)))) + " {:3d}%".format(round((epoch+curImgIndPointer+1)*100/(NUM_OF_EPOCH+MAX_INDEX)))  + " | Images used: {:5d}".format(curImgIndPointer) + " | Accuracy: {:3.1f}%".format(accuracy*100), end="\r")
+      epoch += 1
+      print()
     if(input("Press 1 to save weights and biases: ") == "1"):
         saveValues()
 
@@ -113,16 +105,16 @@ def saveValues():
         file = open(dir_path + "/dataStore/{}.txt".format(key),'w')
         np.savetxt(file,  wAndBDict[key], fmt='%.3f', delimiter="\t")
         file.close()
-    file = open(dir_path + "/dataStore/arr12.txt",'w')
+    file = open(dir_path + "/dataStore/arrInput.txt",'w')
     np.savetxt(file, inputArr[-1],fmt='%.3f',delimiter="\t")
     file.close()
-    file = open(dir_path + "/dataStore/arr23.txt",'w')
+    file = open(dir_path + "/dataStore/arrHidden1.txt.txt",'w')
     np.savetxt(file, hiddenL1Arr[-1],fmt='%.3f',delimiter="\t")
     file.close()
-    file = open(dir_path + "/dataStore/arr34.txt",'w')
+    file = open(dir_path + "/dataStore/arrHidden2.txt.txt",'w')
     np.savetxt(file, hiddenL2Arr[-1],fmt='%.3f',delimiter="\t")
     file.close()
-    file = open(dir_path + "/dataStore/arrOut.txt",'w')
+    file = open(dir_path + "/dataStore/arrOutput.txt.txt",'w')
     np.savetxt(file, outputArr[-1],fmt='%.3f',delimiter="\t")
     file.close()
     print("!!!!!!!!Values Saved!!!!!!!!!!!!!")

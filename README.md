@@ -47,14 +47,22 @@ Lets see a description of my project files and folders:
   - Convolution currently is very slow, any recommendations to optimize will be appreciated.
 - `trainCNN.py`:
   - Like `trainNN.py` but the images are convoluted instead of using them directly.
-- `autoTrainCNN.py`:
+- `trainCNNEntireDataset.py`:
   - Like `trainCNN.py`, but some choices are pre-selected.
-  - It chooses 1500 random images from MNIST, runs 1000 updates, then chooses 1500 random images again. This keeps repeating [NUM_OF_TRAINING] times.
+  - It chooses the first 200 images from MNIST, updates the weights once, then chooses the next 200 images, updates the weights once again, and so on, until the entire dataset is used. This is known as one epoch.
   - At the end, the user will be given the option to save the new weights ans biases.
 
 If you want to inform my about any errors, or give me any suggestions, feel free to message me at my LinkedIn (linkedin.com/in/uzair0845).
 
 ### Updates
+
+<u>update 4.1:</u>
+- Deleted `autoTrainCNN.py`.
+- Added `trainCNNEntireDataset.py`, where the user doesn't select images, instead the first 200 images used, then weights are updated once, then the next 200 images are used, then the weights are updated again once and so on, until the entire dataset is used.
+- Added `drawingBoard.py`, which shows a graphical user interface where you can draw numbers and see the output using the last save weights and biases.
+- In `trainNN.py`, `trainCNN.py` and `trainCNNEntireDataset.py`, neural network node values are now saved in `arrInput.txt`, `arrHidden1.txt`, `arrHidden2.txt` and `arrOutput.txt`, instead of `arr12.txt`, `arr23.txt`, `arr34.txt` and `arrOut.txt`.
+- In `convolution.py`, the print messages indicating the start and end of convolution are now optional.
+- In `showNumber.py`, getting the images is now done using the `getImagesFromMNIST` function in `getNumbers.py`.
 
 <u>update 3.2:</u>
 - Prompt in `getNumbers.py` changed from "Choose the number to use" to "Number of images to use".

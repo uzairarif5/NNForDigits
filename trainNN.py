@@ -124,16 +124,16 @@ def saveValues():
         file.close()
 
     #save calculated values of last image
-    file = open(dir_path + "/dataStore/arr12.txt",'w')
+    file = open(dir_path + "/dataStore/arrInput.txt.txt",'w')
     np.savetxt(file, inputArr[-1],fmt='%.3f',delimiter="\t")
     file.close()
-    file = open(dir_path + "/dataStore/arr23.txt",'w')
+    file = open(dir_path + "/dataStore/arrHidden1.txt.txt",'w')
     np.savetxt(file, hiddenL1Arr[-1],fmt='%.3f',delimiter="\t")
     file.close()
-    file = open(dir_path + "/dataStore/arr34.txt",'w')
+    file = open(dir_path + "/dataStore/arrHidden2.txt.txt",'w')
     np.savetxt(file, hiddenL2Arr[-1],fmt='%.3f',delimiter="\t")
     file.close()
-    file = open(dir_path + "/dataStore/arrOut.txt",'w')
+    file = open(dir_path + "/dataStore/arrOutput.txt.txt",'w')
     np.savetxt(file, outputArr[-1],fmt='%.3f',delimiter="\t")
     file.close()
     
