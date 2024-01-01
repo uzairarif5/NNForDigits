@@ -47,10 +47,18 @@ Lets see a description of my project files and folders:
   - Convolution currently is very slow, any recommendations to optimize will be appreciated.
 - `trainCNN.py`:
   - Like `trainNN.py` but the images are convoluted instead of using them directly.
+- `autoTrainCNN.py`:
+  - Like `trainCNN.py`, but some choices are pre-selected.
+  - It chooses 1500 random images from MNIST, runs 1000 updates, then chooses 1500 random images again. This keeps repeating [NUM_OF_TRAINING] times.
+  - At the end, the user will be given the option to save the new weights ans biases.
 
 If you want to inform my about any errors, or give me any suggestions, feel free to message me at my LinkedIn (linkedin.com/in/uzair0845).
 
 ### Updates
+
+<u>update 3.2:</u>
+- Prompt in `getNumbers.py` changed from "Choose the number to use" to "Number of images to use".
+- Added `autoTrainCNN.py`, which is like `trainCNN.py`, but some options are pre-selected. It chooses 1500 random images from MNIST, runs 1000 updates, then chooses 1500 random images again. This keeps repeating [NUM_OF_TRAINING] times. At the end, the user will be given the option to save the new weights ans biases.
 
 <u>update 3.1:</u>
 - The maxpooling function and the filtering function are now vectorized, so convolution is now faster.

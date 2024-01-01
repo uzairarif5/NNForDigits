@@ -4,21 +4,31 @@ import mnist
 import pickle
 import numpy as np
 
-bannedNumIndices = [132, 41299, 49212]
 rawImages = mnist.train_images()
 rawLabels = mnist.train_labels()
-maxIndex = len(rawLabels)
+MAX_INDEX = len(rawLabels)
+BANNED_INDICES = [132, 41299, 49212]
 dir_path = os.path.dirname(os.path.realpath(__file__))
 
 def getStartAndEndInd():
-  global maxIndex
-  startingIndex = maxIndex
-  while (startingIndex > maxIndex-1):
-    startingIndex = int(input("Type the starting index less than {}: ".format(maxIndex)))
-  endingIndex = maxIndex
-  while ((endingIndex > maxIndex-1) or (endingIndex < startingIndex)):
-    endingIndex = int(input("Type the ending index more than {} and less than {}: ".format(startingIndex, maxIndex)))
+  startingIndex = MAX_INDEX
+  while (startingIndex > MAX_INDEX-1):
+    startingIndex = int(input("Type the starting index less than {}: ".format(MAX_INDEX)))
+  endingIndex = MAX_INDEX
+  while ((endingIndex > MAX_INDEX-1) or (endingIndex < startingIndex)):
+    endingIndex = int(input("Type the ending index more than {} and less than {}: ".format(startingIndex, MAX_INDEX)))
   return (startingIndex, endingIndex)
+
+def getRandomImgsFromMNIST(numOfImages):
+  print("choosing {} random images".format(numOfImages))
+  images = []
+  labels = []
+  indices = random.sample(list(filter(lambda x: (x not in BANNED_INDICES), range(1, MAX_INDEX))), numOfImages)
+  for i in indices:
+    images.append(rawImages[i])
+    labels.append(rawLabels[i])
+  return (np.array(images, dtype=np.uint16), np.array(labels), np.array(indices))
+
 
 def getImagesFromMNIST():
   indices = []
@@ -28,7 +38,7 @@ def getImagesFromMNIST():
     images = []
     labels = []
     while i < endI:
-      if i in bannedNumIndices:
+      if i in BANNED_INDICES:
         print("index {} is banned".format(i))
         i += 1
         continue
@@ -43,12 +53,12 @@ def getImagesFromMNIST():
     indices = selectedIndices
   else:
     print("choosing random images")
-    numOfImages = int(input("Choose the number to use (more than 1 and less than {}): ".format(maxIndex)))
-    while(numOfImages<1 or numOfImages>maxIndex-1):
-      numOfImages = int(input("Choose the number to use (more than 1 less than {}): ".format(maxIndex)))
+    numOfImages = int(input("Number of images to use (more than 1 and less than {}): ".format(MAX_INDEX)))
+    while(numOfImages<1 or numOfImages>MAX_INDEX-1):
+      numOfImages = int(input("Number of images to use (more than 1 less than {}): ".format(MAX_INDEX)))
     images = []
     labels = []
-    indices = random.sample(list(filter(lambda x: (x not in bannedNumIndices), range(1,maxIndex))), numOfImages)
+    indices = random.sample(list(filter(lambda x: (x not in BANNED_INDICES), range(1,MAX_INDEX))), numOfImages)
     for i in indices:
       images.append(rawImages[i])
       labels.append(rawLabels[i])

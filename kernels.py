@@ -1,5 +1,5 @@
 
-from getNumbers import maxIndex, getImagesFromMNIST
+from getNumbers import getImagesFromMNIST
 from showNumbers import showImgsOnPlt
 import numpy as np
 

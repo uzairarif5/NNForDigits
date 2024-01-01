@@ -1,27 +1,27 @@
 
 import numpy as np
 import os
-import getNumbers
-from initWeightsAndBiases import initWeightsAndBiases, inputArrSize, hiddenL1ArrSize, hiddenL2ArrSize
+from getNumbers import getRandomImgsFromMNIST
+from initWeightsAndBiases import inputArrSize, hiddenL1ArrSize, hiddenL2ArrSize
 from convolution import doubleConv
 
-INIT_LEARNING_RATE = 0.001
-MAX_UPDATES = 1000 #max number of updates before new batch
-MIN_ERR = 0.01 #during updates, if loss is lower than MIN_ERR, than a new batch is used
-dir_path = os.path.dirname(os.path.realpath(__file__))
+NUM_OF_TRAINING = 200
+LEARNING_RATE = 0.0015
+MAX_UPDATES = 1000
+MIN_ERR = 0.01
+NUM_OF_IMGS = 500
 
+#global Variables
+dir_path = os.path.dirname(os.path.realpath(__file__))
+batchSize = None
+inputArr = None
+hiddenL1Arr = None
+hiddenL2Arr = None
+outputArr = None
+correctPosArr = None
 convolutedImgs = None
 labels = None
 indices = None
-#get images
-if(input("Press 1 to use mnist\n") == "1"):
-    [images, labels, indices] = getNumbers.getImagesFromMNIST()
-    convolutedImgs = doubleConv(images)
-else:
-    images = getNumbers.getOwnImages()
-    convolutedImgs = doubleConv(images)
-    labels = getNumbers.getLabelsOfOwnImages()
-    indices = list(range(len(labels)))
 
 def getWAndBDict():
     weightsAndBiasesDict = {
@@ -32,8 +32,6 @@ def getWAndBDict():
         "biases3": None,
         "biases4": None
     }
-    if (input("Press 1 to initialize weights and biases (otherwise use last values): ") == "1"):
-        initWeightsAndBiases()
     for key in weightsAndBiasesDict.keys():
         file = open(dir_path + "/dataStore/{}.npy".format(key),'rb')
         weightsAndBiasesDict[key] = np.load(file)
@@ -43,7 +41,9 @@ def getWAndBDict():
 weightsAndBiasesDict = getWAndBDict()
 
 def setInitVar():
-    global batchSize, inputArr, hiddenL1Arr, hiddenL2Arr, outputArr, correctPosArr
+    global batchSize, inputArr, hiddenL1Arr, hiddenL2Arr, outputArr, correctPosArr, convolutedImgs, labels, indices
+    [images, labels, indices] = getRandomImgsFromMNIST(NUM_OF_IMGS)
+    convolutedImgs = doubleConv(images)
     batchSize = len(labels)
     inputArr = np.ndarray((batchSize, inputArrSize),dtype=np.float16)
     hiddenL1Arr = np.ndarray((batchSize, hiddenL1ArrSize),dtype=np.float16)
@@ -89,43 +89,22 @@ def backPropagate(learningRate):
 
 def doTraining():
     global convolutedImgs, labels, indices, errorArr
-    lastLR = INIT_LEARNING_RATE
-    while True:
-        if (input("Press 1 to use a new learning rate (current value: {}): ".format(lastLR)) == "1"):
-            inputVal= -1
-            while(inputVal < 0 or inputVal > 1):
-                inputVal = float(input("Choose num between 0 and 1: "))
-            lastLR = inputVal
-        for updates in range(MAX_UPDATES):
-            forwardPropagate()
-            backPropagate(lastLR)
-            avgErr = np.sum(errorArr)/len(indices)
-            print(("█"*round((updates+1)*10/MAX_UPDATES)) + ("_"*round(10-((updates+1)*10/MAX_UPDATES))) + " {:4d}%".format(round((updates+1)*100/MAX_UPDATES)) + " | current error: {:6.5f}".format(avgErr) + " | number of correct prediction (out of {}): {}".format(len(indices), numOfCorrectAns),end="\r")
-            if(avgErr < MIN_ERR):
-                break
-        print("\nError indices:\n", indices[errorIndices])
-        print("Total:",len(indices[errorIndices]))
-        if(input("Press 1 to view error labels: ") == "1"):
-            print(labels[errorIndices])
-        if(input("Press 1 to view output layers for last input: ") == "1"):
-            for i in range(len(labels)):
-                print("output{:<2d}:".format(i), str(["%5.4f" % x for x in outputArr[i]]).replace(",","").replace("\'",""),"myAns: {}; correctAns: {}".format(np.argmax(outputArr[i]), labels[i]))
-        if(input("Press 1 to save weights and biases: ") == "1"):
-            saveValues()
-        if(input("Press 1 to repeat training with the incorrect indices: ") == "1"):
-            convolutedImgs = convolutedImgs[errorIndices]
-            labels = labels[errorIndices]
-            indices = indices[errorIndices]
-        elif(input("Press 1 to repeat training with different images (from MNIST), otherwise quit: ") == "1"):
-            [images, labels, indices] = getNumbers.getImagesFromMNIST()
-            convolutedImgs = doubleConv(images)
-        else:
-            print("bye")
-            break
-        setInitVar()
+    counter = 0
+    while counter < NUM_OF_TRAINING:
+      setInitVar()
+      for updates in range(MAX_UPDATES):
+          forwardPropagate()
+          backPropagate(LEARNING_RATE)
+          avgErr = np.sum(errorArr)/len(indices)
+          print(("█"*round((updates+1)*10/MAX_UPDATES)) + ("_"*round(10-((updates+1)*10/MAX_UPDATES))) + " {:4d}%".format(round((updates+1)*100/MAX_UPDATES)) + " | current error: {:6.5f}".format(avgErr) + " | number of correct prediction (out of {}): {}".format(len(indices), numOfCorrectAns),end="\r")
+          if(avgErr < MIN_ERR):
+              break
+      counter += 1
+      print("\nNumber of trainings done so far:", counter)
+    if(input("Press 1 to save weights and biases: ") == "1"):
+        saveValues()
 
 def saveValues():
-    global dir_path
     wAndBDict = weightsAndBiasesDict
     for key in wAndBDict.keys():
         file = open(dir_path + "/dataStore/{}.npy".format(key),'wb')
@@ -134,8 +113,6 @@ def saveValues():
         file = open(dir_path + "/dataStore/{}.txt".format(key),'w')
         np.savetxt(file,  wAndBDict[key], fmt='%.3f', delimiter="\t")
         file.close()
-
-    #save calculated values of last image
     file = open(dir_path + "/dataStore/arr12.txt",'w')
     np.savetxt(file, inputArr[-1],fmt='%.3f',delimiter="\t")
     file.close()
@@ -148,23 +125,7 @@ def saveValues():
     file = open(dir_path + "/dataStore/arrOut.txt",'w')
     np.savetxt(file, outputArr[-1],fmt='%.3f',delimiter="\t")
     file.close()
-    
     print("!!!!!!!!Values Saved!!!!!!!!!!!!!")
 
 if(__name__ == "__main__"):
-    setInitVar()
     doTraining()
-    
-    '''
-    SHAPES:
-    link12 (784, 256)
-    link23 (256, 128)
-    link34 (128, 10)
-    biases2 (256,)
-    biases3 (128,)
-    biases4 (10,)
-    inputArr: (BATCH_SIZE, 784)
-    hiddenL1Arr: (BATCH_SIZE, 256)
-    hiddenL2Arr: (BATCH_SIZE, 128)
-    outputArr: (BATCH_SIZE, 10)
-    '''

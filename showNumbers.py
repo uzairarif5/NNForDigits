@@ -1,7 +1,7 @@
 
 import matplotlib.pyplot as plt
 import numpy as np
-from getNumbers import maxIndex, rawImages, rawLabels, getLabelsOfOwnImages, getSpecificOwnImages
+from getNumbers import MAX_INDEX, rawImages, rawLabels, getLabelsOfOwnImages, getSpecificOwnImages
 
 def getStartAndEndInd(maxI):
   startingIndex = maxI
@@ -38,7 +38,7 @@ def showImgsOnPlt(images, labels, indices):
 if(__name__ == "__main__"):
   userInp = input("Press 1 to check range of mnist images\nPress 2 to check range of ownDataset images\nPres 3 to use pre-selected indices\n")
   if userInp == "1":
-    startingIndex, endingIndex = getStartAndEndInd(maxIndex)
+    startingIndex, endingIndex = getStartAndEndInd(MAX_INDEX)
     showImgsOnPlt(rawImages[startingIndex:endingIndex], rawLabels[startingIndex:endingIndex], list(range(startingIndex, endingIndex)))
   elif userInp == "2":
     labels = getLabelsOfOwnImages()
