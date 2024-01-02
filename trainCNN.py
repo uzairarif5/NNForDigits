@@ -3,25 +3,21 @@ import numpy as np
 import os
 import getNumbers
 from initWeightsAndBiases import initWeightsAndBiases, inputArrSize, hiddenL1ArrSize, hiddenL2ArrSize
-from convolution import doubleConv
+from convolution import doubleConvGPU
 
 INIT_LEARNING_RATE = 0.001
 MAX_UPDATES = 1000 #max number of updates before new batch
 MIN_ERR = 0.01 #during updates, if loss is lower than MIN_ERR, than a new batch is used
-dir_path = os.path.dirname(os.path.realpath(__file__))
+DIR_PATH = os.path.dirname(os.path.realpath(__file__))
+LAMBDA1 = 0.01 #for input-hidden1 weights
+LAMBDA2 = 0.01 #for hidden1-hidden2 weights
+LAMBDA3 = 0.01 #for hidden2-output weights
 
 convolutedImgs = None
 labels = None
 indices = None
-#get images
-if(input("Press 1 to use mnist\n") == "1"):
-    [images, labels, indices] = getNumbers.getImagesFromMNIST()
-    convolutedImgs = doubleConv(images)
-else:
-    images = getNumbers.getOwnImages()
-    convolutedImgs = doubleConv(images)
-    labels = getNumbers.getLabelsOfOwnImages()
-    indices = list(range(len(labels)))
+[images, labels, indices] = getNumbers.getImagesFromMNIST()
+convolutedImgs = doubleConvGPU(images)
 
 def getWAndBDict():
     weightsAndBiasesDict = {
@@ -35,7 +31,7 @@ def getWAndBDict():
     if (input("Press 1 to initialize weights and biases (otherwise use last values): ") == "1"):
         initWeightsAndBiases()
     for key in weightsAndBiasesDict.keys():
-        file = open(dir_path + "/dataStore/{}.npy".format(key),'rb')
+        file = open(DIR_PATH + "/dataStore/{}.npy".format(key),'rb')
         weightsAndBiasesDict[key] = np.load(file)
         file.close()
     return weightsAndBiasesDict
@@ -54,7 +50,7 @@ def setInitVar():
 def getIncorrect(i):
     global errorIndices, numOfCorrectAns, correctPosArr, errorArr
     correctPosArr[i][labels[i]] = 1
-    errorArr += np.square(outputArr[i] - correctPosArr[i])/2
+    errorArr += np.square(outputArr[i] - correctPosArr[i])
     if (np.argmax(outputArr[i]) == labels[i]):
         numOfCorrectAns += 1
     else:
@@ -72,18 +68,25 @@ def forwardPropagate():
     errorArr = np.zeros(10, dtype=np.float32)
     getIncVec = np.vectorize(getIncorrect, otypes=[None])
     getIncVec(np.arange(len(labels)))
+    link34Norm = np.sum(wAndBDict["link34"]** 2) 
+    link23Norm = np.sum(wAndBDict["link23"]** 2) 
+    link12Norm = np.sum(wAndBDict["link12"]** 2) 
+    return (np.sum(errorArr) + (LAMBDA3*link34Norm)+(LAMBDA2*link23Norm)+(LAMBDA1*link12Norm))/(2*batchSize)
 
 def backPropagate(learningRate):
     global weightsAndBiasesDict
     wAndBDict = weightsAndBiasesDict
-    repeatedCalculationArr = learningRate * (outputArr - correctPosArr) * (outputArr) * (1-outputArr)
-    wAndBDict["link34"] -= np.transpose(hiddenL2Arr) @ repeatedCalculationArr
-    wAndBDict["biases4"] -= (np.ones(len(labels))/len(labels)) @ repeatedCalculationArr
-    repeatedCalArr2 = ((repeatedCalculationArr @ np.transpose(wAndBDict["link34"]))/10)*hiddenL2Arr*(1-hiddenL2Arr)
-    wAndBDict["link23"] -= np.transpose(hiddenL1Arr) @ repeatedCalArr2
+    repeatedCalArr1 = learningRate * (outputArr - correctPosArr) * (outputArr) * (1-outputArr)
+    wAndBDict["link34"] -= (np.transpose(hiddenL2Arr) @ repeatedCalArr1)
+    wAndBDict["link34"] -= learningRate * (LAMBDA3/batchSize) * wAndBDict["link34"]
+    wAndBDict["biases4"] -= (np.ones(len(labels))/len(labels)) @ repeatedCalArr1
+    repeatedCalArr2 = ((repeatedCalArr1 @ np.transpose(wAndBDict["link34"]))/10)*hiddenL2Arr*(1-hiddenL2Arr)
+    wAndBDict["link23"] -= (np.transpose(hiddenL1Arr) @ repeatedCalArr2) 
+    wAndBDict["link23"] -= learningRate * (LAMBDA2/batchSize) * wAndBDict["link23"]
     wAndBDict["biases3"] -= (np.ones(len(labels))/len(labels)) @ repeatedCalArr2
     repeatedCalArr3 = ((repeatedCalArr2 @ np.transpose(wAndBDict["link23"]))/hiddenL2ArrSize)*hiddenL1Arr*(1-hiddenL1Arr)
-    wAndBDict["link12"] -= np.transpose(inputArr) @ repeatedCalArr3
+    wAndBDict["link12"] -= (np.transpose(inputArr) @ repeatedCalArr3)
+    wAndBDict["link12"] -= learningRate * (LAMBDA1/batchSize) * wAndBDict["link12"]
     wAndBDict["biases2"] -= (np.ones(len(labels))/len(labels)) @ repeatedCalArr3
     weightsAndBiasesDict = wAndBDict
 
@@ -97,11 +100,11 @@ def doTraining():
                 inputVal = float(input("Choose num between 0 and 1: "))
             lastLR = inputVal
         for updates in range(MAX_UPDATES):
-            forwardPropagate()
+            avgErr = forwardPropagate()
             backPropagate(lastLR)
-            avgErr = np.sum(errorArr)/len(indices)
             print(("█"*round((updates+1)*10/MAX_UPDATES)) + ("_"*round(10-((updates+1)*10/MAX_UPDATES))) + " {:4d}%".format(round((updates+1)*100/MAX_UPDATES)) + " | current error: {:6.5f}".format(avgErr) + " | number of correct prediction (out of {}): {}".format(len(indices), numOfCorrectAns),end="\r")
             if(avgErr < MIN_ERR):
+                print("\nMinimum error reached, ending training...")
                 break
         print("\nError indices:\n", indices[errorIndices])
         print("Total:",len(indices[errorIndices]))
@@ -118,34 +121,34 @@ def doTraining():
             indices = indices[errorIndices]
         elif(input("Press 1 to repeat training with different images (from MNIST), otherwise quit: ") == "1"):
             [images, labels, indices] = getNumbers.getImagesFromMNIST()
-            convolutedImgs = doubleConv(images)
+            convolutedImgs = doubleConvGPU(images)
         else:
             print("bye")
             break
         setInitVar()
 
 def saveValues():
-    global dir_path
+    global DIR_PATH
     wAndBDict = weightsAndBiasesDict
     for key in wAndBDict.keys():
-        file = open(dir_path + "/dataStore/{}.npy".format(key),'wb')
+        file = open(DIR_PATH + "/dataStore/{}.npy".format(key),'wb')
         np.save(file, wAndBDict[key])
         file.close()
-        file = open(dir_path + "/dataStore/{}.txt".format(key),'w')
+        file = open(DIR_PATH + "/dataStore/{}.txt".format(key),'w')
         np.savetxt(file,  wAndBDict[key], fmt='%.3f', delimiter="\t")
         file.close()
 
     #save calculated values of last image
-    file = open(dir_path + "/dataStore/arrInput.txt.txt",'w')
+    file = open(DIR_PATH + "/dataStore/arrInput.txt",'w')
     np.savetxt(file, inputArr[-1],fmt='%.3f',delimiter="\t")
     file.close()
-    file = open(dir_path + "/dataStore/arrHidden1.txt.txt",'w')
+    file = open(DIR_PATH + "/dataStore/arrHidden1.txt",'w')
     np.savetxt(file, hiddenL1Arr[-1],fmt='%.3f',delimiter="\t")
     file.close()
-    file = open(dir_path + "/dataStore/arrHidden2.txt.txt",'w')
+    file = open(DIR_PATH + "/dataStore/arrHidden2.txt",'w')
     np.savetxt(file, hiddenL2Arr[-1],fmt='%.3f',delimiter="\t")
     file.close()
-    file = open(dir_path + "/dataStore/arrOutput.txt.txt",'w')
+    file = open(DIR_PATH + "/dataStore/arrOutput.txt",'w')
     np.savetxt(file, outputArr[-1],fmt='%.3f',delimiter="\t")
     file.close()
     

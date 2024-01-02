@@ -3,7 +3,7 @@ import tkinter as tk
 import math
 import os
 import threading
-from convolution import doubleConv
+from convolution import doubleConvGPU
 
 firstArrSize = 784
 firstArr = np.zeros(firstArrSize,dtype=np.float16)
@@ -13,6 +13,7 @@ thirdArrSize = 128
 thirdArr = np.ndarray(thirdArrSize,dtype=np.float16)
 outputs = np.ndarray(10,dtype=np.float16)
 correctValues = np.ndarray(10,dtype=np.int16)
+np.set_printoptions(formatter={'float': lambda x: "{0:1.3f}".format(x)})
 
 window = tk.Tk()
 
@@ -73,14 +74,24 @@ def checkNum():
           except:
               pass
     
-    print(np.array_repr(drawing).replace('\n', '').replace("        "," ").replace("],       [","\n").replace("array([[","").replace("]], dtype=float16)","").replace(",","").replace(".","").replace("0"," ").replace("5","."))
+    outputText = ""
+    for row in drawing:
+        for val in row:
+            if(val == 0):
+                outputText += "_"
+            elif(val == 0.5):
+               outputText += "+"
+            else:
+               outputText += "#" 
+        outputText += "\n"
+    print(outputText)
 
-    firstArr = (doubleConv([drawing], False)[0]).reshape(784)
+    firstArr = doubleConvGPU(np.array([drawing], dtype=np.float32), True)[0]
     secondArr = 1/(1 + np.exp(-((firstArr @ link12)+biases2)))
     thirdArr = 1/(1 + np.exp(-((secondArr @ link23)+biases3)))
     outputs = 1/(1 + np.exp(-((thirdArr @ link34)+biases4)))
-    finalValue = np.argmax(outputs)
-    print('output: ', finalValue)
+    print('value:', np.argmax(outputs))
+    print('outputs:', outputs)
 
 mouseClicked = False
 

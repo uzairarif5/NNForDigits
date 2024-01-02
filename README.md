@@ -19,15 +19,16 @@ Lets see a description of my project files and folders:
 - `showNumber.py`:
   - Contains `showImgsOnPlt`, which shows images on a matplotlib graph.
   - Running this files allows you to see images from MNIST or ownDataset.
-- `trainNN.py`:
+- `trainCNN.py`:
   - The main file that contains the actual neural network.
   - Understanding the back propagation can be confusing, for more detail see `/imagesForBackPro`.
   - Run this file to see the neural network in action. While training, selected images will be shown using `showImgsOnPlt` from `showNumber.py`.
   - Several prompts get asked during runtime, some of them include:
-    - "Press 1 to use mnist": Either use mnist or ownDataset.
+    - "Press 1 to initialize weights and biases": Either use the last saved values or make new ones.
+    - "Press 1 to use a new learning rate"
     - "Press 1 to print output array on each forward propagation": during forward propagation, this option displays the loss array for each image.
   - Program summary:
-    - Select images, either by using MNIST or ownDataset. If you choose MNIST, then either neighboring images are used (with starting index and ending index chosen by the user), or images are randomly selected (the number of images is chosen by the user).
+    - Select images from MNIST. Either use neighboring images (with starting index and ending index chosen by the user), or select randomly (the number of images is chosen by the user).
     - Ask user to initialize new weights and biases, otherwise used the saved values.
     - Set init variables (input array, hidden layers array, output array, correct ans array).
     - Start training.
@@ -45,16 +46,23 @@ Lets see a description of my project files and folders:
   - Does filtering (from `kernel.py`), and down sizing (from `downPool.py`) on a range of images.
   - Running this files allows you the select a range of images and apply convolution to them.
   - Convolution currently is very slow, any recommendations to optimize will be appreciated.
-- `trainCNN.py`:
-  - Like `trainNN.py` but the images are convoluted instead of using them directly.
 - `trainCNNEntireDataset.py`:
   - Like `trainCNN.py`, but some choices are pre-selected.
-  - It chooses the first 200 images from MNIST, updates the weights once, then chooses the next 200 images, updates the weights once again, and so on, until the entire dataset is used. This is known as one epoch.
-  - At the end, the user will be given the option to save the new weights ans biases.
+  - It chooses the first [BATCH_SIZE] images from MNIST, updates the weights once, then chooses the next [BATCH_SIZE] images, updates the weights once again, and so on, until the entire dataset is used. This is known as one epoch.
+  - At the end, the user will be given the option to save the new weights and biases.
+  - The first [BATCH_SIZE] images will be shown using matplotlib.
 
 If you want to inform my about any errors, or give me any suggestions, feel free to message me at my LinkedIn (linkedin.com/in/uzair0845).
 
 ### Updates
+
+<u>update 5.1:</u>
+- Added L2 Regularization.
+- Added `applyKernelsGPU` function in `kernels.py`, which uses GPU.
+- Added `doubleConvGPU` in `convolution.py` which is like `doubleConv` but uses `applyKernelsGPU`.
+- Removed `trainNN.py`, which was like `trainCNN.py` but without the convolution.
+- Deleted `ownDataset.py`, which used to contain my own custom dataset. That also means I removed the corresponding code in `trainCNN.py` and `getNumbers.py`.
+- `trainCNNEntireDataset.py` now use test data at the end to test accuracy.
 
 <u>update 4.1:</u>
 - Deleted `autoTrainCNN.py`.
@@ -63,6 +71,7 @@ If you want to inform my about any errors, or give me any suggestions, feel free
 - In `trainNN.py`, `trainCNN.py` and `trainCNNEntireDataset.py`, neural network node values are now saved in `arrInput.txt`, `arrHidden1.txt`, `arrHidden2.txt` and `arrOutput.txt`, instead of `arr12.txt`, `arr23.txt`, `arr34.txt` and `arrOut.txt`.
 - In `convolution.py`, the print messages indicating the start and end of convolution are now optional.
 - In `showNumber.py`, getting the images is now done using the `getImagesFromMNIST` function in `getNumbers.py`.
+- In `getNumbers.py`, the function `getImagesFromMNIST` return images in float32 instead of uint16.
 
 <u>update 3.2:</u>
 - Prompt in `getNumbers.py` changed from "Choose the number to use" to "Number of images to use".

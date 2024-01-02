@@ -1,7 +1,6 @@
 import os
 import random
 import mnist
-import pickle
 import numpy as np
 
 RAW_IMAGES = mnist.train_images()
@@ -20,9 +19,6 @@ def getStartAndEndInd():
   while ((endingIndex > MAX_INDEX-1) or (endingIndex < startingIndex)):
     endingIndex = int(input("Type the ending index more than {} and less than {}: ".format(startingIndex, MAX_INDEX)))
   return (startingIndex, endingIndex)
-
-def geAllMNISTImgs():
-  return (RAW_IMAGES, RAW_LABELS)
 
 def getImagesFromMNIST():
   indices = []
@@ -62,21 +58,8 @@ def getImagesFromMNIST():
 def getOneImageFromMNIST(index):
   return (np.array(RAW_IMAGES[index]), RAW_LABELS[index])
 
-def getLabelsOfOwnImages():
-    file = open(DIR_PATH + "/ownDatasetStuff/ownLabels.txt","r")
-    labels = list(map(int,(file.read()).split("\n")))
-    file.close()
-    print("your dataset contains {} images".format(len(labels)))
-    return np.array(labels)
+def geAllMNISTImgs():
+  return (np.array(RAW_IMAGES,dtype=np.float32), RAW_LABELS)
 
-def getOwnImages():
-    file = open(DIR_PATH + "/ownDatasetStuff/ownImages.dat","rb")
-    images = (np.array(pickle.load(file)) * 255).astype("int16")
-    file.close()
-    return images
-
-def getSpecificOwnImages(startingInd, endingIndex):
-    file = open("ownDatasetStuff/ownImages.dat","rb")
-    images = (np.array(pickle.load(file))[startingInd: endingIndex] * 255).astype("int16")
-    file.close()
-    return images
+def geAllMNISTTestImgs():
+  return (np.array(TEST_IMAGES, dtype=np.float32), TEST_LABELS)

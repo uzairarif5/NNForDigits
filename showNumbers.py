@@ -1,7 +1,7 @@
 
 import matplotlib.pyplot as plt
 import numpy as np
-from getNumbers import MAX_INDEX, getImagesFromMNIST, getLabelsOfOwnImages, getSpecificOwnImages
+from getNumbers import getImagesFromMNIST
 
 def showImgsOnPlt(images, labels, indices):
     curIndex = 0
