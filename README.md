@@ -45,10 +45,14 @@ Lets see a description of my project files and folders:
   - It chooses the first [BATCH_SIZE] images from MNIST, updates the weights once, then chooses the next [BATCH_SIZE] images, updates the weights once again, and so on, until the entire dataset is used. This is known as one epoch.
   - At the end, the user will be given the option to save the new weights and biases.
   - The first [BATCH_SIZE] images will be shown using matplotlib.
+- `testImage.py`
 
 If you want to inform my about any errors, or give me any suggestions, feel free to message me at my LinkedIn (linkedin.com/in/uzair0845).
 
 ### Updates
+
+<u>update 6.2:</u>
+- Added `testImage.py`, where you can pick test images from MNIST, and test the neural network. As of this update, the neural network is around 95% accurate.
 
 <u>update 6.1:</u>
 - Kernels are now initialized randomly and get saved in `/dataStore`. I didn't delete the pre-set fixed kernels I had before in `kernels.py`, I kept them for the sake of testing. The kernels also have biases as well.

@@ -5,7 +5,6 @@ from downPool import downPoolAndReluGPUForPassedMatrix
 import getNumbers
 from initWeightsAndBiases import initWeightsAndBiases, inputArrSize, hiddenL1ArrSize, hiddenL2ArrSize
 from convolution import convGPU
-from kernels import kernels
 
 INIT_LEARNING_RATE = 0.001
 MAX_UPDATES = 200 #max number of updates before new batch

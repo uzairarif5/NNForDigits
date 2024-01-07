@@ -2,7 +2,7 @@
 import numpy as np
 import os
 from downPool import downPoolAndReluGPUForPassedMatrix
-from getNumbers import geAllMNISTImgs, geAllMNISTTestImgs, MAX_INDEX
+from getNumbers import geAllMNISTImgs, geAllMNISTTestImgs
 from initWeightsAndBiases import inputArrSize, hiddenL1ArrSize, hiddenL2ArrSize
 from convolution import convGPU
 
@@ -11,6 +11,7 @@ NUM_OF_EPOCH = 5
 LEARNING_RATE = 0.001
 BATCH_SIZE = 200
 (IMAGES, LABELS) = geAllMNISTImgs()
+MAX_INDEX = len(LABELS)
 INDICES = np.arange(MAX_INDEX)
 (TEST_IMAGES, TEST_LABELS) = geAllMNISTTestImgs()
 LAMBDA1_DIV_INS = 0.01/BATCH_SIZE #for input-hidden1 weights
