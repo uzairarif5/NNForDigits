@@ -7,12 +7,6 @@ Lets see a description of my project files and folders:
   - Contains the sizes of the input layer (784), second hidden layer (256) and third hidden layer (128).
 - `/dataStore`:
   - Stores the weights and biases made from `initWeightAndBiases.py` in txt and npy files. The npy file type is used by the neural network.
-- `/ownDatasetStuff`:
-  - Though I am training my neural network through the MNIST dataset, I also have my own data set (which I call ownDataset) stored in this folder.
-  - Custom images are made and stored using the drawing board (not in the repository as of now).
-  - `ownImages.dat` contains image information, while `ownLabels.txt` contains the appropriate label (in the same index).
-  - `editDataset.py` contains the functions to get, save and delete images. Running this files allows you to input one index which will delete the appropriate image, and its label.
-  - My own images are stored in a bunch of 28 x 28 arrays (of floats between 0 to 1) inside one big array. `pickle.dump` is then used to store my own images in the dat file.
 - `getNumbers.py`:
   - Contains functions to get images from MNIST and ownDataset.
   - Some images are banned and will not be used. Banned images are stored in the `bannedNumIndices` array.
@@ -55,6 +49,18 @@ Lets see a description of my project files and folders:
 If you want to inform my about any errors, or give me any suggestions, feel free to message me at my LinkedIn (linkedin.com/in/uzair0845).
 
 ### Updates
+
+<u>update 6.1:</u>
+- Kernels are now initialized randomly and get saved in `/dataStore`. I didn't delete the pre-set fixed kernels I had before in `kernels.py`, I kept them for the sake of testing. The kernels also have biases as well.
+- In `trainCNN.py` and `trainCNNEntireDataset.py`, kernel values also get updated in back propagation. Also, images will be convoluted on every loop instead of doing it once at the start.
+- In `convolution.py`, added `convGPU` function which is like `doubleConvGPU`, but does convolution only once. Also, removed `doubleConvGPU` function.
+- In `trainCNN.py` and `trainCNNEntireDataset.py`, the learning rate used to get multiplied once to the `repeatedCalArr1` variable, but now it gets multiplied on the weights and biases individually.
+- In `downPool.py`, added the `downPoolAndReluGPU` function which takes an image, and does downPool and relu vectorized (using GPU), it also returns a list 3x3 matrices, these 3x3 matrices is the sum of all the pixel values that "passed" downPool and relu, along with its neighboring pixel. For example, passing 5 28x28 image will return a 14x14 image, but also 5 3x3 matrices, the middle value of the inner 3x3 matrix is the sum of all the pixel values that passed downpool and relu and ended up in the 14x14 image, the edges of the 3x3 matrix contains the passed pixel value's neighbors. These 3x3 matrices are suppose to make back propagation easier. 
+- In `downPool.py`, added the function `downPoolAndReluGPUForPassedMatrix` which takes the passed matrix and the filtered image as an input, and maxpools the passed matrix in the same indices where the filtered image get maxpooled. This is used keep track which pixel in the original 28x28 image ended up in the final 7x7 image. This is suppose to make back propagation easier.
+
+<u>update 5.2:</u>
+- In `drawingBoard.py`, the drawn image is multiplied by 255 before being convoluted, and then the filtered images are divided by 255 after convolution.
+- In `trainCNNEntireDataset.py`, the accuracy now represents the average accuracy of all batches passed so far in the current epoch, instead of using only the last batch.
 
 <u>update 5.1:</u>
 - Added L2 Regularization.

@@ -60,7 +60,23 @@ def initWeightsAndBiases():
     file = open(dir_path +"dataStore/biases4.txt",'w')
     np.savetxt(file,(np.random.rand(10)))
     file.close()
+
+    file = open(dir_path +"dataStore/kernels1.npy",'wb')
+    np.save(file, (np.random.normal(0,1,size=(4,3,3)).astype(np.float32)))
+    file.close()
+    file = open(dir_path +"dataStore/kernels2.npy",'wb')
+    np.save(file, (np.random.normal(0,1,size=(4,3,3)).astype(np.float32)))
+    file.close()
+
+    file = open(dir_path +"dataStore/kernels1Bias.npy",'wb')
+    np.save(file, (np.random.normal(0,1,size=(4,)).astype(np.float32)))
+    file.close()
+    file = open(dir_path +"dataStore/kernels2Bias.npy",'wb')
+    np.save(file, (np.random.normal(0,1,size=(4,)).astype(np.float32)))
+    file.close()
+
     print("values saved!!!")
+
 
 if(__name__ == "__main__"):
     initWeightsAndBiases()

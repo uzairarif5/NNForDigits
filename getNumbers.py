@@ -3,9 +3,9 @@ import random
 import mnist
 import numpy as np
 
-RAW_IMAGES = mnist.train_images()
+RAW_IMAGES = mnist.train_images()/255
 RAW_LABELS = mnist.train_labels()
-TEST_IMAGES = mnist.test_images()
+TEST_IMAGES = mnist.test_images()/255
 TEST_LABELS = mnist.test_labels()
 MAX_INDEX = len(RAW_LABELS)
 BANNED_INDICES = [132, 41299, 49212]

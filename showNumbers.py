@@ -23,6 +23,7 @@ def showImgsOnPlt(images, labels, indices):
     plt.connect('key_press_event', toggle_images)
     plt.title("smallIndex: {:>4}, bigIndex: {:>6}, label: {:>3}".format(curIndex, indices[curIndex], labels[curIndex]))
     plt.imshow(np.resize(images[0], (28,28)))
+    plt.colorbar()
     plt.show()
 
 if(__name__ == "__main__"):

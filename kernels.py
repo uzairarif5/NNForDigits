@@ -27,25 +27,6 @@ kernels = np.array([
   ],
 ], dtype=np.float32)
 
-def convColumn(rowNum, k, img):
-  r = rowNum[0]
-  if(r ==0):
-    return (np.convolve(img[r], k[1]) + np.convolve(img[r+1], k[2]))[1:-1]
-  elif(r == len(img)-1):
-    return (np.convolve(img[r-1], k[0]) + np.convolve(img[r], k[1]))[1:-1]
-  else:
-    return (np.convolve(img[r-1], k[0]) + np.convolve(img[r], k[1]) + np.convolve(img[r+1], k[2]))[1:-1]
-
-def applyOneKernel(k, img):
-  rowNums = np.arange(len(img)).reshape((len(img),1))
-  mulRVec = np.vectorize(convColumn, signature="(r), (i, j), (n, m) -> (x)")
-  return mulRVec(rowNums, k, img)
-
-def applyKernels(img):
-  applyOneKerVec = np.vectorize(applyOneKernel, signature="(k1, k2), (n, m) -> (i, j)")
-  mainOutputArr = applyOneKerVec(kernels, img)
-  return mainOutputArr
-
 @nb.guvectorize('(float32[:,:], float32[:,:,:],float32[:,:,:])','(m,m),(i,j,j)->(i,m,m)',target='cuda')
 def applyKernelsGPU(X, K, Z):
   for k in range(K.shape[0]):
@@ -72,7 +53,7 @@ def applyKernelsGPU(X, K, Z):
     Z[k, r, 0] = (X[r-1+kr, 0] * K[k, kr, 1]) + (X[r-1+kr, 1] * K[k, kr, 2])
     Z[k, r, X.shape[1]-1] = (X[r-1+kr, X.shape[1]-2] * K[k, kr, 0]) + (X[r-1+kr, X.shape[1]-1] * K[k, kr, 1])
 
-def applyKernelsGPUWrapper(imgs):
+def applyKernelsGPUWrapper(imgs, kernels):
   nImgs = len(imgs)
   nKer = len(kernels)
   imgHeight = len(imgs[0]) #Also width

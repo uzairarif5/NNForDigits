@@ -3,7 +3,7 @@ import tkinter as tk
 import math
 import os
 import threading
-from convolution import doubleConvGPU
+from convolution import convGPU
 
 firstArrSize = 784
 firstArr = np.zeros(firstArrSize,dtype=np.float16)
@@ -25,7 +25,7 @@ buttonFrame = tk.Frame(window,padx=10,pady=10)
 buttonFrame.grid(row=0,column=1)
 
 def setWAndB():
-  global link12, link23, link34, biases2, biases3, biases4
+  global link12, link23, link34, biases2, biases3, biases4, kernels1 ,kernels2
   dir_path = os.path.dirname(os.path.realpath(__file__))
   file = open(dir_path + "/dataStore/link12.npy",'rb')
   link12 = np.load(file)
@@ -44,6 +44,12 @@ def setWAndB():
   file.close()
   file = open(dir_path + "/dataStore/biases4.npy",'rb')
   biases4 = np.load(file)
+  file.close()
+  file = open(dir_path + "/dataStore/kernels1.npy",'rb')
+  kernels1 = np.load(file)
+  file.close()
+  file = open(dir_path + "/dataStore/kernels2.npy",'rb')
+  kernels2 = np.load(file)
   file.close()
 
 def checkNum():
@@ -86,7 +92,9 @@ def checkNum():
         outputText += "\n"
     print(outputText)
 
-    firstArr = doubleConvGPU(np.array([drawing], dtype=np.float32), True)[0]
+    (matricesForPassedPixels, smallImages) = convGPU(np.array([drawing], dtype=np.float32), kernels1)
+    (matricesForPassedPixels2, smallImages2) = convGPU(smallImages, kernels2)
+    firstArr = smallImages2.reshape((1, 784))
     secondArr = 1/(1 + np.exp(-((firstArr @ link12)+biases2)))
     thirdArr = 1/(1 + np.exp(-((secondArr @ link23)+biases3)))
     outputs = 1/(1 + np.exp(-((thirdArr @ link34)+biases4)))

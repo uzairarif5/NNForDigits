@@ -1,140 +1,161 @@
 
-from threading import Timer
 import numpy as np
 import os
-from showNumbers import showImgsOnPlt
+from downPool import downPoolAndReluGPUForPassedMatrix
 from getNumbers import geAllMNISTImgs, geAllMNISTTestImgs, MAX_INDEX
-from initWeightsAndBiases import initWeightsAndBiases, inputArrSize, hiddenL1ArrSize, hiddenL2ArrSize
-from convolution import doubleConvGPU
+from initWeightsAndBiases import inputArrSize, hiddenL1ArrSize, hiddenL2ArrSize
+from convolution import convGPU
 
 DIR_PATH = os.path.dirname(os.path.realpath(__file__))
-NUM_OF_EPOCH = 50
+NUM_OF_EPOCH = 5
 LEARNING_RATE = 0.001
-BATCH_SIZE = 500
+BATCH_SIZE = 200
 (IMAGES, LABELS) = geAllMNISTImgs()
 INDICES = np.arange(MAX_INDEX)
 (TEST_IMAGES, TEST_LABELS) = geAllMNISTTestImgs()
-TEST_IMAGES_CONV = (doubleConvGPU(TEST_IMAGES, True))/255
 LAMBDA1_DIV_INS = 0.01/BATCH_SIZE #for input-hidden1 weights
 LAMBDA2_DIV_INS = 0.01/BATCH_SIZE #for hidden1-hidden2 weights
 LAMBDA3_DIV_INS = 0.01/BATCH_SIZE #for hidden2-output weights
 #Naming convention: Lambda x divided by no. training instances
 
-#global Variables
-inputArr = None
+labels = None
+indices = None
 hiddenL1Arr = None
 hiddenL2Arr = None
 outputArr = None
 correctPosArr = None
-convolutedImgs = np.zeros((MAX_INDEX, inputArrSize))
-labels = None
-indices = None
 
 def getWAndBDict():
-    weightsAndBiasesDict = {
-        "link12": None,
-        "link23": None,
-        "link34": None,
-        "biases2": None,
-        "biases3": None,
-        "biases4": None
-    }
-    for key in weightsAndBiasesDict.keys():
-        file = open(DIR_PATH + "/dataStore/{}.npy".format(key),'rb')
-        weightsAndBiasesDict[key] = np.load(file)
-        file.close()
-    return weightsAndBiasesDict
+		weightsAndBiasesDict = {
+				"link12": None,
+				"link23": None,
+				"link34": None,
+				"biases2": None,
+				"biases3": None,
+				"biases4": None,
+				"kernels1": None,
+				"kernels2": None,
+				"kernels1Bias": None,
+				"kernels2Bias": None
+		}
+		for key in weightsAndBiasesDict.keys():
+				file = open(DIR_PATH + "/dataStore/{}.npy".format(key),'rb')
+				weightsAndBiasesDict[key] = np.load(file)
+				file.close()
+		return weightsAndBiasesDict
 
 weightsAndBiasesDict = getWAndBDict()
 
-def setInitVar(startingInd, curEpoch):
-    global labels, indices, inputArr, hiddenL1Arr, hiddenL2Arr, outputArr, correctPosArr, convolutedImgs
-    if (curEpoch == 1):
-        convolutedImgs[startingInd: startingInd + BATCH_SIZE] = doubleConvGPU(IMAGES[startingInd: startingInd + BATCH_SIZE], True)
-    labels = LABELS[startingInd: startingInd + BATCH_SIZE]
-    indices = INDICES[startingInd: startingInd + BATCH_SIZE]
-    inputArr = np.ndarray((BATCH_SIZE, inputArrSize),dtype=np.float16)
-    hiddenL1Arr = np.ndarray((BATCH_SIZE, hiddenL1ArrSize),dtype=np.float16)
-    hiddenL2Arr = np.ndarray((BATCH_SIZE, hiddenL2ArrSize),dtype=np.float16)
-    outputArr = np.ndarray((BATCH_SIZE,10), dtype=np.float16)
-    correctPosArr = np.zeros((BATCH_SIZE,10), dtype='int')
+def setInitVar(startingInd):
+		global  labels, correctPosArr
+		labels = LABELS[startingInd: startingInd + BATCH_SIZE]
+		correctPosArr = np.zeros((BATCH_SIZE,10), dtype='int')
 
-def forwardPropagate(si):
-    global inputArr, hiddenL1Arr, hiddenL2Arr, outputArr, correctPosArr
-    wAndBDict = weightsAndBiasesDict
-    inputArr = convolutedImgs[si: si + BATCH_SIZE]/255
-    hiddenL1Arr = 1/(1+np.exp(-((inputArr @ wAndBDict["link12"]) + wAndBDict["biases2"])))
-    hiddenL2Arr = 1/(1+np.exp(-((hiddenL1Arr @ wAndBDict["link23"]) + wAndBDict["biases3"])))
-    outputArr = 1/(1+np.exp(-((hiddenL2Arr @ wAndBDict["link34"]) + wAndBDict["biases4"])))
-    outputMaxPos = np.argmax(outputArr, axis=1)
-    correctPosArr[np.arange(BATCH_SIZE), labels] = 1
-    return np.sum(outputMaxPos == labels)/BATCH_SIZE
+def forwardPropagate(startingInd):
+		global  matricesForPassedPixels2, matricesForPassedPixels3, images, hiddenL1Arr, hiddenL2Arr, outputArr, correctPosArr
+		wAndBDict = weightsAndBiasesDict
+		batch = IMAGES[startingInd: startingInd + BATCH_SIZE]
+		#"only passed pixels" means the pixels that "passed" relu and maxpooling
+		(filteredImgs, matricesForPassedPixels, smallImages) = convGPU(batch, wAndBDict["kernels1"])
+		#matricesForPassedPixels is for all image pixels that passed first convolution (and its neighbors)
+		(filteredImgs2, matricesForPassedPixels2, smallImages2) = convGPU(smallImages, wAndBDict["kernels2"])
+		#matricesForPassedPixels is for all smallImages pixels that passed second convolution (and its neighbors)
+		matricesForPassedPixels3 = downPoolAndReluGPUForPassedMatrix(np.repeat(matricesForPassedPixels, 4).reshape(BATCH_SIZE*16,14,14,3,3), filteredImgs2, np.zeros((BATCH_SIZE*16,7,7)), np.zeros((BATCH_SIZE*16, 7, 7, 3, 3), dtype=np.float32))
+		#matricesForPassedPixels3 is for all image pixels that passed second convolution (and its neighbors)
+		images = smallImages2.reshape((BATCH_SIZE, inputArrSize))
+		hiddenL1Arr = 1/(1+np.exp(-((images @ wAndBDict["link12"]) + wAndBDict["biases2"])))
+		hiddenL2Arr = 1/(1+np.exp(-((hiddenL1Arr @ wAndBDict["link23"]) + wAndBDict["biases3"])))
+		outputArr = 1/(1+np.exp(-((hiddenL2Arr @ wAndBDict["link34"]) + wAndBDict["biases4"])))
+		outputMaxPos = np.argmax(outputArr, axis=1)
+		correctPosArr[np.arange(BATCH_SIZE), labels] = 1
+		return np.sum(outputMaxPos == labels)/BATCH_SIZE
 
 def backPropagate(learningRate):
-    global weightsAndBiasesDict
-    wAndBDict = weightsAndBiasesDict
-    repeatedCalculationArr = learningRate * (outputArr - correctPosArr) * (outputArr) * (1-outputArr)
-    wAndBDict["link34"] -= (np.transpose(hiddenL2Arr) @ repeatedCalculationArr)
-    wAndBDict["link34"] -= learningRate * LAMBDA3_DIV_INS * wAndBDict["link34"]
-    wAndBDict["biases4"] -= (np.ones(len(labels))/len(labels)) @ repeatedCalculationArr
-    repeatedCalArr2 = ((repeatedCalculationArr @ np.transpose(wAndBDict["link34"]))/10)*hiddenL2Arr*(1-hiddenL2Arr)
-    wAndBDict["link23"] -= (np.transpose(hiddenL1Arr) @ repeatedCalArr2)
-    wAndBDict["link23"] -= learningRate * LAMBDA2_DIV_INS * wAndBDict["link23"]
-    wAndBDict["biases3"] -= (np.ones(len(labels))/len(labels)) @ repeatedCalArr2
-    repeatedCalArr3 = ((repeatedCalArr2 @ np.transpose(wAndBDict["link23"]))/hiddenL2ArrSize)*hiddenL1Arr*(1-hiddenL1Arr)
-    wAndBDict["link12"] -= (np.transpose(inputArr) @ repeatedCalArr3) + (LAMBDA1_DIV_INS * wAndBDict["link12"])
-    wAndBDict["link12"] -= learningRate * LAMBDA1_DIV_INS * wAndBDict["link12"]
-    wAndBDict["biases2"] -= (np.ones(len(labels))/len(labels)) @ repeatedCalArr3
-    weightsAndBiasesDict = wAndBDict
+	global weightsAndBiasesDict, matricesForPassedPixels2, matricesForPassedPixels3
+	wAndBDict = weightsAndBiasesDict
+	repeatedCalculationArr = (outputArr - correctPosArr) * (outputArr) * (1-outputArr)
+	wAndBDict["link34"] -= learningRate * (np.transpose(hiddenL2Arr) @ repeatedCalculationArr)
+	wAndBDict["link34"] -= learningRate * LAMBDA3_DIV_INS * wAndBDict["link34"]
+	wAndBDict["biases4"] -= learningRate * (np.ones(len(labels))/len(labels)) @ repeatedCalculationArr
+	repeatedCalArr2 = ((repeatedCalculationArr @ np.transpose(wAndBDict["link34"]))/10)*hiddenL2Arr*(1-hiddenL2Arr)
+	wAndBDict["link23"] -= learningRate * (np.transpose(hiddenL1Arr) @ repeatedCalArr2)
+	wAndBDict["link23"] -= learningRate * LAMBDA2_DIV_INS * wAndBDict["link23"]
+	wAndBDict["biases3"] -= learningRate * (np.ones(len(labels))/len(labels)) @ repeatedCalArr2
+	repeatedCalArr3 = ((repeatedCalArr2 @ np.transpose(wAndBDict["link23"]))/hiddenL2ArrSize)*hiddenL1Arr*(1-hiddenL1Arr)
+	wAndBDict["link12"] -= learningRate * (np.transpose(images) @ repeatedCalArr3)+(LAMBDA1_DIV_INS * wAndBDict["link12"])
+	wAndBDict["link12"] -= learningRate * LAMBDA1_DIV_INS * wAndBDict["link12"]
+	wAndBDict["biases2"] -= learningRate * (np.ones(len(labels))/len(labels)) @ repeatedCalArr3
+	repeatedCalArr4 = ((repeatedCalArr3 @ np.transpose(wAndBDict["link12"]))/hiddenL1ArrSize).reshape(BATCH_SIZE,16,7,7)
+	matricesForPassedPixels2 = matricesForPassedPixels2.reshape(BATCH_SIZE,16,7,7,3,3)
+	matricesForPassedPixels3 = matricesForPassedPixels3.reshape(BATCH_SIZE,16,7,7,3,3)
+	summedKernels = np.sum(np.sum(wAndBDict["kernels2"], axis=1), axis=1)/9
+	for j in range(16):
+		for n in range(3):
+			for m in range(3):
+				matricesForPassedPixels2[:,j,:,:,n,m] *= repeatedCalArr4[:,j,:,:]
+		wAndBDict["kernels2"][j%4] -= learningRate * (np.sum(np.sum(np.sum(matricesForPassedPixels2, axis=0), axis=1),axis=1)[j])/BATCH_SIZE
+		repeatedCalArr4[:,j,:,:] *= summedKernels[j%4]
+		for n in range(3):
+			for m in range(3):
+				matricesForPassedPixels3[:,j,:,:,n,m] *= repeatedCalArr4[:,j,:,:]
+		wAndBDict["kernels1"][j%4] -= learningRate * (np.sum(np.sum(np.sum(matricesForPassedPixels3, axis=0), axis=1),axis=1)[j])/BATCH_SIZE
+	weightsAndBiasesDict = wAndBDict
 
 def convAndForwardPropagationOnTestData():
-    wAndBDict = weightsAndBiasesDict
-    testHiddenL1Arr = 1/(1+np.exp(-((TEST_IMAGES_CONV @ wAndBDict["link12"]) + wAndBDict["biases2"])))
-    testHiddenL2Arr = 1/(1+np.exp(-((testHiddenL1Arr @ wAndBDict["link23"]) + wAndBDict["biases3"])))
-    testOutputArr = 1/(1+np.exp(-((testHiddenL2Arr @ wAndBDict["link34"]) + wAndBDict["biases4"])))
-    return np.sum(TEST_LABELS == np.argmax(testOutputArr, axis=1))/len(TEST_LABELS)
+		wAndBDict = weightsAndBiasesDict
+		(filteredImgs, matricesForPassedPixels, smallImages) = convGPU(TEST_IMAGES, weightsAndBiasesDict["kernels1"])
+		(filteredImgs2, matricesForPassedPixels2, smallImages2) = convGPU(smallImages, weightsAndBiasesDict["kernels2"])
+		images = smallImages2.reshape((len(TEST_IMAGES), inputArrSize))
+		testHiddenL1Arr = 1/(1+np.exp(-((images @ wAndBDict["link12"]) + wAndBDict["biases2"])))
+		testHiddenL2Arr = 1/(1+np.exp(-((testHiddenL1Arr @ wAndBDict["link23"]) + wAndBDict["biases3"])))
+		testOutputArr = 1/(1+np.exp(-((testHiddenL2Arr @ wAndBDict["link34"]) + wAndBDict["biases4"])))
+		return np.sum(TEST_LABELS == np.argmax(testOutputArr, axis=1))/len(TEST_LABELS)
 
 def doTraining():
-    epoch = 1
-    while epoch <= NUM_OF_EPOCH:
-        curImgIndPointer = 0
-        while curImgIndPointer < MAX_INDEX:
-            setInitVar(curImgIndPointer, epoch)
-            accuracy = forwardPropagate(curImgIndPointer)
-            backPropagate(LEARNING_RATE)
-            curImgIndPointer += BATCH_SIZE
-            print("Epoch: {:2d} | ".format(epoch) + ("█"*round(curImgIndPointer*20/MAX_INDEX)) + ("_"*round(20-(curImgIndPointer*20/MAX_INDEX))) + " {:3d}%".format(round(curImgIndPointer*100/(MAX_INDEX)))  + " | Images used: {:5d}".format(curImgIndPointer) + " | Accuracy (with last batch): {:3.1f}%".format(accuracy*100), end="\r")
-        epoch += 1
-        print()
-    print("Accuracy with test data: {}%".format(convAndForwardPropagationOnTestData()))
-    if(input("Press 1 to save weights and biases: ") == "1"):
-        saveValues()
+		epoch = 1
+		while epoch <= NUM_OF_EPOCH:
+				curImgIndPointer = 0
+				accuracy = 0
+				loopCounter = 1
+				while curImgIndPointer < MAX_INDEX:
+						setInitVar(curImgIndPointer)
+						accuracy += forwardPropagate(curImgIndPointer)
+						backPropagate(LEARNING_RATE)
+						curImgIndPointer += BATCH_SIZE
+						print("Epoch: {:2d} | ".format(epoch) + ("█"*round(curImgIndPointer*20/MAX_INDEX)) + ("_"*round(20-(curImgIndPointer*20/MAX_INDEX))) + " {:3d}%".format(round(curImgIndPointer*100/(MAX_INDEX)))  + " | Images used: {:5d}".format(curImgIndPointer) + " | Accuracy: {:3.2f}%".format((accuracy*100)/loopCounter), end="\r")
+						loopCounter += 1
+				epoch += 1
+				print()
+		print("Accuracy with test data: {:4.2f}%".format(convAndForwardPropagationOnTestData()*100))
+		if(input("Press 1 to save weights and biases: ") == "1"):
+				saveValues()
 
 def saveValues():
-    wAndBDict = weightsAndBiasesDict
-    for key in wAndBDict.keys():
-        file = open(DIR_PATH + "/dataStore/{}.npy".format(key),'wb')
-        np.save(file, wAndBDict[key])
-        file.close()
-        file = open(DIR_PATH + "/dataStore/{}.txt".format(key),'w')
-        np.savetxt(file,  wAndBDict[key], fmt='%.3f', delimiter="\t")
-        file.close()
-    file = open(DIR_PATH + "/dataStore/arrInput.txt",'w')
-    np.savetxt(file, inputArr[-1],fmt='%.3f',delimiter="\t")
-    file.close()
-    file = open(DIR_PATH + "/dataStore/arrHidden1.txt",'w')
-    np.savetxt(file, hiddenL1Arr[-1],fmt='%.3f',delimiter="\t")
-    file.close()
-    file = open(DIR_PATH + "/dataStore/arrHidden2.txt",'w')
-    np.savetxt(file, hiddenL2Arr[-1],fmt='%.3f',delimiter="\t")
-    file.close()
-    file = open(DIR_PATH + "/dataStore/arrOutput.txt",'w')
-    np.savetxt(file, outputArr[-1],fmt='%.3f',delimiter="\t")
-    file.close()
-    print("!!!!!!!!Values Saved!!!!!!!!!!!!!")
+		wAndBDict = weightsAndBiasesDict
+		for key in wAndBDict.keys():
+				file = open(DIR_PATH + "/dataStore/{}.npy".format(key),'wb')
+				np.save(file, wAndBDict[key])
+				file.close()
+				if(wAndBDict[key].ndim == 3):
+						saveVal = wAndBDict[key].reshape(len(wAndBDict[key]),len(wAndBDict[key][0])**2)
+				else:
+						saveVal = wAndBDict[key]
+				file = open(DIR_PATH + "/dataStore/{}.txt".format(key),'w')
+				np.savetxt(file,  saveVal, fmt='%.3f', delimiter="\t")
+				file.close()
+		file = open(DIR_PATH + "/dataStore/arrInput.txt",'w')
+		np.savetxt(file, images[-1],fmt='%.3f',delimiter="\t")
+		file.close()
+		file = open(DIR_PATH + "/dataStore/arrHidden1.txt",'w')
+		np.savetxt(file, hiddenL1Arr[-1],fmt='%.3f',delimiter="\t")
+		file.close()
+		file = open(DIR_PATH + "/dataStore/arrHidden2.txt",'w')
+		np.savetxt(file, hiddenL2Arr[-1],fmt='%.3f',delimiter="\t")
+		file.close()
+		file = open(DIR_PATH + "/dataStore/arrOutput.txt",'w')
+		np.savetxt(file, outputArr[-1],fmt='%.3f',delimiter="\t")
+		file.close()
+		print("!!!!!!!!Values Saved!!!!!!!!!!!!!")
 
 if(__name__ == "__main__"):
-    setInitVar(0, 1) #assume we are in first epoch
-    t1 = Timer(1.0, doTraining)
-    t1.start()
-    showImgsOnPlt(convolutedImgs[:BATCH_SIZE].reshape(BATCH_SIZE* 16, 7, 7), LABELS[:BATCH_SIZE], INDICES[:BATCH_SIZE])
+		doTraining()
