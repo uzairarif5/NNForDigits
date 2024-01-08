@@ -51,6 +51,9 @@ If you want to inform my about any errors, or give me any suggestions, feel free
 
 ### Updates
 
+<u>update 6.3:</u>
+- Kernels now have biases as well. They are now used in forward propagation and get updated in backward propagation.
+
 <u>update 6.2:</u>
 - Added `testImage.py`, where you can pick test images from MNIST, and test the neural network. As of this update, the neural network is around 95% accurate.
 

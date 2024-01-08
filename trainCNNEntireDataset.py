@@ -7,7 +7,7 @@ from initWeightsAndBiases import inputArrSize, hiddenL1ArrSize, hiddenL2ArrSize
 from convolution import convGPU
 
 DIR_PATH = os.path.dirname(os.path.realpath(__file__))
-NUM_OF_EPOCH = 5
+NUM_OF_EPOCH = 2
 LEARNING_RATE = 0.001
 BATCH_SIZE = 200
 (IMAGES, LABELS) = geAllMNISTImgs()
@@ -21,6 +21,7 @@ LAMBDA3_DIV_INS = 0.01/BATCH_SIZE #for hidden2-output weights
 
 labels = None
 indices = None
+inputArr = None
 hiddenL1Arr = None
 hiddenL2Arr = None
 outputArr = None
@@ -36,8 +37,8 @@ def getWAndBDict():
 				"biases4": None,
 				"kernels1": None,
 				"kernels2": None,
-				"kernels1Bias": None,
-				"kernels2Bias": None
+				"kernels1Biases": None,
+				"kernels2Biases": None
 		}
 		for key in weightsAndBiasesDict.keys():
 				file = open(DIR_PATH + "/dataStore/{}.npy".format(key),'rb')
@@ -53,18 +54,18 @@ def setInitVar(startingInd):
 		correctPosArr = np.zeros((BATCH_SIZE,10), dtype='int')
 
 def forwardPropagate(startingInd):
-		global  matricesForPassedPixels2, matricesForPassedPixels3, images, hiddenL1Arr, hiddenL2Arr, outputArr, correctPosArr
+		global  matricesForPassedPixels2, matricesForPassedPixels3, inputArr, hiddenL1Arr, hiddenL2Arr, outputArr, correctPosArr
 		wAndBDict = weightsAndBiasesDict
 		batch = IMAGES[startingInd: startingInd + BATCH_SIZE]
 		#"only passed pixels" means the pixels that "passed" relu and maxpooling
-		(filteredImgs, matricesForPassedPixels, smallImages) = convGPU(batch, wAndBDict["kernels1"])
+		(filteredImgs, matricesForPassedPixels, smallImages) = convGPU(batch, wAndBDict["kernels1"], wAndBDict["kernels1Biases"])
 		#matricesForPassedPixels is for all image pixels that passed first convolution (and its neighbors)
-		(filteredImgs2, matricesForPassedPixels2, smallImages2) = convGPU(smallImages, wAndBDict["kernels2"])
+		(filteredImgs2, matricesForPassedPixels2, smallImages2) = convGPU(smallImages, wAndBDict["kernels2"], wAndBDict["kernels2Biases"])
 		#matricesForPassedPixels is for all smallImages pixels that passed second convolution (and its neighbors)
 		matricesForPassedPixels3 = downPoolAndReluGPUForPassedMatrix(np.repeat(matricesForPassedPixels, 4).reshape(BATCH_SIZE*16,14,14,3,3), filteredImgs2, np.zeros((BATCH_SIZE*16,7,7)), np.zeros((BATCH_SIZE*16, 7, 7, 3, 3), dtype=np.float32))
 		#matricesForPassedPixels3 is for all image pixels that passed second convolution (and its neighbors)
-		images = smallImages2.reshape((BATCH_SIZE, inputArrSize))
-		hiddenL1Arr = 1/(1+np.exp(-((images @ wAndBDict["link12"]) + wAndBDict["biases2"])))
+		inputArr = smallImages2.reshape((BATCH_SIZE, inputArrSize))
+		hiddenL1Arr = 1/(1+np.exp(-((inputArr @ wAndBDict["link12"]) + wAndBDict["biases2"])))
 		hiddenL2Arr = 1/(1+np.exp(-((hiddenL1Arr @ wAndBDict["link23"]) + wAndBDict["biases3"])))
 		outputArr = 1/(1+np.exp(-((hiddenL2Arr @ wAndBDict["link34"]) + wAndBDict["biases4"])))
 		outputMaxPos = np.argmax(outputArr, axis=1)
@@ -83,19 +84,24 @@ def backPropagate(learningRate):
 	wAndBDict["link23"] -= learningRate * LAMBDA2_DIV_INS * wAndBDict["link23"]
 	wAndBDict["biases3"] -= learningRate * (np.ones(len(labels))/len(labels)) @ repeatedCalArr2
 	repeatedCalArr3 = ((repeatedCalArr2 @ np.transpose(wAndBDict["link23"]))/hiddenL2ArrSize)*hiddenL1Arr*(1-hiddenL1Arr)
-	wAndBDict["link12"] -= learningRate * (np.transpose(images) @ repeatedCalArr3)+(LAMBDA1_DIV_INS * wAndBDict["link12"])
+	wAndBDict["link12"] -= learningRate * (np.transpose(inputArr) @ repeatedCalArr3)+(LAMBDA1_DIV_INS * wAndBDict["link12"])
 	wAndBDict["link12"] -= learningRate * LAMBDA1_DIV_INS * wAndBDict["link12"]
 	wAndBDict["biases2"] -= learningRate * (np.ones(len(labels))/len(labels)) @ repeatedCalArr3
 	repeatedCalArr4 = ((repeatedCalArr3 @ np.transpose(wAndBDict["link12"]))/hiddenL1ArrSize).reshape(BATCH_SIZE,16,7,7)
+	inputReshaped = inputArr.reshape(BATCH_SIZE,16,7,7)
+	repeatedCalArr5 = np.where(inputReshaped == 0, inputReshaped, repeatedCalArr4)
 	matricesForPassedPixels2 = matricesForPassedPixels2.reshape(BATCH_SIZE,16,7,7,3,3)
 	matricesForPassedPixels3 = matricesForPassedPixels3.reshape(BATCH_SIZE,16,7,7,3,3)
 	summedKernels = np.sum(np.sum(wAndBDict["kernels2"], axis=1), axis=1)/9
 	for j in range(16):
+		wAndBDict["kernels2Biases"][j%4] -= learningRate * np.sum(np.sum(np.sum(repeatedCalArr5, axis=0), axis=1), axis=1)[j]
 		for n in range(3):
 			for m in range(3):
 				matricesForPassedPixels2[:,j,:,:,n,m] *= repeatedCalArr4[:,j,:,:]
 		wAndBDict["kernels2"][j%4] -= learningRate * (np.sum(np.sum(np.sum(matricesForPassedPixels2, axis=0), axis=1),axis=1)[j])/BATCH_SIZE
 		repeatedCalArr4[:,j,:,:] *= summedKernels[j%4]
+		repeatedCalArr5[:,j,:,:] *= summedKernels[j%4]
+		wAndBDict["kernels1Biases"][j%4] -= learningRate * np.sum(np.sum(np.sum(repeatedCalArr5, axis=0), axis=1), axis=1)[j]
 		for n in range(3):
 			for m in range(3):
 				matricesForPassedPixels3[:,j,:,:,n,m] *= repeatedCalArr4[:,j,:,:]
@@ -104,8 +110,8 @@ def backPropagate(learningRate):
 
 def convAndForwardPropagationOnTestData():
 		wAndBDict = weightsAndBiasesDict
-		(filteredImgs, matricesForPassedPixels, smallImages) = convGPU(TEST_IMAGES, weightsAndBiasesDict["kernels1"])
-		(filteredImgs2, matricesForPassedPixels2, smallImages2) = convGPU(smallImages, weightsAndBiasesDict["kernels2"])
+		(filteredImgs, matricesForPassedPixels, smallImages) = convGPU(TEST_IMAGES, weightsAndBiasesDict["kernels1"], weightsAndBiasesDict["kernels1Biases"])
+		(filteredImgs2, matricesForPassedPixels2, smallImages2) = convGPU(smallImages, weightsAndBiasesDict["kernels2"], weightsAndBiasesDict["kernels2Biases"])
 		images = smallImages2.reshape((len(TEST_IMAGES), inputArrSize))
 		testHiddenL1Arr = 1/(1+np.exp(-((images @ wAndBDict["link12"]) + wAndBDict["biases2"])))
 		testHiddenL2Arr = 1/(1+np.exp(-((testHiddenL1Arr @ wAndBDict["link23"]) + wAndBDict["biases3"])))
@@ -145,7 +151,7 @@ def saveValues():
 				np.savetxt(file,  saveVal, fmt='%.3f', delimiter="\t")
 				file.close()
 		file = open(DIR_PATH + "/dataStore/arrInput.txt",'w')
-		np.savetxt(file, images[-1],fmt='%.3f',delimiter="\t")
+		np.savetxt(file, inputArr[-1],fmt='%.3f',delimiter="\t")
 		file.close()
 		file = open(DIR_PATH + "/dataStore/arrHidden1.txt",'w')
 		np.savetxt(file, hiddenL1Arr[-1],fmt='%.3f',delimiter="\t")

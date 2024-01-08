@@ -27,6 +27,8 @@ kernels = np.array([
   ],
 ], dtype=np.float32)
 
+kernelsBiases = np.array([0.1,0.5,0.2,0.3], dtype=np.float32)
+
 @nb.guvectorize('(float32[:,:], float32[:,:,:],float32[:,:,:])','(m,m),(i,j,j)->(i,m,m)',target='cuda')
 def applyKernelsGPU(X, K, Z):
   for k in range(K.shape[0]):

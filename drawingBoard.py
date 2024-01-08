@@ -25,7 +25,7 @@ buttonFrame = tk.Frame(window,padx=10,pady=10)
 buttonFrame.grid(row=0,column=1)
 
 def setWAndB():
-  global link12, link23, link34, biases2, biases3, biases4, kernels1 ,kernels2
+  global link12, link23, link34, biases2, biases3, biases4, kernels1, kernels2, kernels1Biases, kernels2Biases
   dir_path = os.path.dirname(os.path.realpath(__file__))
   file = open(dir_path + "/dataStore/link12.npy",'rb')
   link12 = np.load(file)
@@ -50,6 +50,12 @@ def setWAndB():
   file.close()
   file = open(dir_path + "/dataStore/kernels2.npy",'rb')
   kernels2 = np.load(file)
+  file.close()
+  file = open(dir_path + "/dataStore/kernels1Biases.npy",'rb')
+  kernels1Biases = np.load(file)
+  file.close()
+  file = open(dir_path + "/dataStore/kernels2Biases.npy",'rb')
+  kernels2Biases = np.load(file)
   file.close()
 
 def checkNum():
@@ -92,8 +98,8 @@ def checkNum():
         outputText += "\n"
     print(outputText)
 
-    (matricesForPassedPixels, smallImages) = convGPU(np.array([drawing], dtype=np.float32), kernels1)
-    (matricesForPassedPixels2, smallImages2) = convGPU(smallImages, kernels2)
+    (filteredImgs, matricesForPassedPixels, smallImages) = convGPU(np.array([drawing], dtype=np.float32), kernels1, kernels1Biases)
+    (filteredImgs2, matricesForPassedPixels2, smallImages2) = convGPU(smallImages, kernels2, kernels2Biases)
     firstArr = smallImages2.reshape((1, 784))
     secondArr = 1/(1 + np.exp(-((firstArr @ link12)+biases2)))
     thirdArr = 1/(1 + np.exp(-((secondArr @ link23)+biases3)))

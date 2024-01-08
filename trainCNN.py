@@ -29,8 +29,8 @@ def getWAndBDict():
 		"biases4": None,
 		"kernels1": None,
 		"kernels2": None,
-		"kernels1Bias": None,
-		"kernels2Bias": None
+		"kernels1Biases": None,
+		"kernels2Biases": None
 	}
 	if (input("Press 1 to initialize weights and biases (otherwise use last values): ") == "1"):
 		initWeightsAndBiases()
@@ -64,9 +64,9 @@ def forwardPropagate():
 	global matricesForPassedPixels2, matricesForPassedPixels3, inputArr, hiddenL1Arr, hiddenL2Arr, outputArr, errorIndices, numOfCorrectAns, errorArr
 	wAndBDict = weightsAndBiasesDict
 	#"only passed pixels" means the pixels that "passed" relu and maxpooling
-	(filteredImgs, matricesForPassedPixels, smallImages) = convGPU(images, wAndBDict["kernels1"])
+	(filteredImgs, matricesForPassedPixels, smallImages) = convGPU(images, wAndBDict["kernels1"], wAndBDict["kernels1Biases"])
 	#matricesForPassedPixels is for all image pixels that passed first convolution (and its neighbors)
-	(filteredImgs2, matricesForPassedPixels2, smallImages2) = convGPU(smallImages, wAndBDict["kernels2"])
+	(filteredImgs2, matricesForPassedPixels2, smallImages2) = convGPU(smallImages, wAndBDict["kernels2"], wAndBDict["kernels2Biases"])
 	#matricesForPassedPixels is for all smallImages pixels that passed second convolution (and its neighbors)
 	matricesForPassedPixels3 = downPoolAndReluGPUForPassedMatrix(np.repeat(matricesForPassedPixels, 4).reshape(batchSize*16,14,14,3,3), filteredImgs2, np.zeros((batchSize*16,7,7)), np.zeros((batchSize*16, 7, 7, 3, 3), dtype=np.float32))
 	#matricesForPassedPixels3 is for all image pixels that passed second convolution (and its neighbors)
@@ -100,15 +100,20 @@ def backPropagate(learningRate):
 	wAndBDict["link12"] -= learningRate * (LAMBDA1/batchSize) * wAndBDict["link12"]
 	wAndBDict["biases2"] -= learningRate * (np.ones(len(labels))/len(labels)) @ repeatedCalArr3
 	repeatedCalArr4 = ((repeatedCalArr3 @ np.transpose(wAndBDict["link12"]))/hiddenL1ArrSize).reshape(batchSize,16,7,7)
+	inputReshaped = inputArr.reshape(batchSize,16,7,7)
+	repeatedCalArr5 = np.where(inputReshaped == 0, inputReshaped, repeatedCalArr4)
 	matricesForPassedPixels2 = matricesForPassedPixels2.reshape(batchSize,16,7,7,3,3)
 	matricesForPassedPixels3 = matricesForPassedPixels3.reshape(batchSize,16,7,7,3,3)
 	summedKernels = np.sum(np.sum(wAndBDict["kernels2"], axis=1), axis=1)/9
 	for j in range(16):
+		wAndBDict["kernels2Biases"][j%4] -= learningRate * np.sum(np.sum(np.sum(repeatedCalArr5, axis=0), axis=1), axis=1)[j]
 		for n in range(3):
 			for m in range(3):
 				matricesForPassedPixels2[:,j,:,:,n,m] *= repeatedCalArr4[:,j,:,:]
 		wAndBDict["kernels2"][j%4] -= learningRate * (np.sum(np.sum(np.sum(matricesForPassedPixels2, axis=0), axis=1),axis=1)[j])/batchSize
 		repeatedCalArr4[:,j,:,:] *= summedKernels[j%4]
+		repeatedCalArr5[:,j,:,:] *= summedKernels[j%4]
+		wAndBDict["kernels1Biases"][j%4] -= learningRate * np.sum(np.sum(np.sum(repeatedCalArr5, axis=0), axis=1), axis=1)[j]
 		for n in range(3):
 			for m in range(3):
 				matricesForPassedPixels3[:,j,:,:,n,m] *= repeatedCalArr4[:,j,:,:]
