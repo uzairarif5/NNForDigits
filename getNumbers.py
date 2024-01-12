@@ -25,7 +25,7 @@ def getImagesFromMNIST(useTest = False):
   bannedIndices = [] if useTest else BANNED_INDICES
   maxIndex = len(imageData) 
   indices = []
-  userInp = input("Press 1 if you want to work with neighboring images (this excludes banned images)\nPress 2 to use pre-selected images\nOtherwise sample randomly:\n") 
+  userInp = input("\nPress 1 if you want to work with neighboring images (this excludes banned images)\nPress 2 to use pre-selected images\nOtherwise sample randomly:\n") 
   if userInp == "1":
     i, endI = getStartAndEndInd(maxIndex)
     images = []

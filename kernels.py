@@ -4,7 +4,17 @@ from showNumbers import showImgsOnPlt
 import numpy as np
 import numba as nb
 
-kernels = np.array([
+presetKernels = np.array([
+  [
+    [0, 0, 1/3],
+    [0, -2/3, 0],
+    [1/3, 0, 0]
+  ],
+  [
+    [1/3, 0, 0],
+    [0, -2/3, 0],
+    [0, 0, 1/3]
+  ],
   [
     [-1/4, -2/4, -1/4],
     [0, 0, 0],
@@ -27,7 +37,7 @@ kernels = np.array([
   ],
 ], dtype=np.float32)
 
-kernelsBiases = np.array([0.1,0.5,0.2,0.3], dtype=np.float32)
+kernelsBiases = np.array([0.1,0.5,0.2,0.3,-0.3,-0.1], dtype=np.float32)
 
 @nb.guvectorize('(float32[:,:], float32[:,:,:],float32[:,:,:])','(m,m),(i,j,j)->(i,m,m)',target='cuda')
 def applyKernelsGPU(X, K, Z):
@@ -64,8 +74,6 @@ def applyKernelsGPUWrapper(imgs, kernels):
 
 if __name__ == '__main__':
   imgs, labels, indices, = getImagesFromMNIST()
-  #applyKernelVec = np.vectorize(applyKernels, signature="(m, n) -> (i, j, k)")
-  #filterImages = applyKernelVec(imgs).reshape(4 * len(imgs), 28, 28)
-  filterImages = applyKernelsGPUWrapper(imgs)
-  showImgsOnPlt(filterImages, np.repeat(labels, 4), np.repeat(indices, 4))
+  filterImages = applyKernelsGPUWrapper(imgs, presetKernels)
+  showImgsOnPlt(filterImages, np.repeat(labels, 6), np.repeat(indices, 6))
   

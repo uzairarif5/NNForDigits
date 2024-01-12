@@ -4,7 +4,7 @@
 Lets see a description of my project files and folders:
 - `initWeightAndBiases.py`:
   - Contains the function of setting weights and biases which will be used by the neural network. The function will run if you run the file.
-  - Contains the sizes of the input layer (784), second hidden layer (256) and third hidden layer (128).
+  - Contains the sizes of the input layer, second hidden layer, third hidden layer and the kernels.
 - `/dataStore`:
   - Stores the weights and biases made from `initWeightAndBiases.py` in txt and npy files. The npy file type is used by the neural network.
 - `getNumbers.py`:
@@ -20,7 +20,6 @@ Lets see a description of my project files and folders:
   - Several prompts get asked during runtime, some of them include:
     - "Press 1 to initialize weights and biases": Either use the last saved values or make new ones.
     - "Press 1 to use a new learning rate"
-    - "Press 1 to print output array on each forward propagation": during forward propagation, this option displays the loss array for each image.
   - Program summary:
     - Select images from MNIST. Either use neighboring images (with starting index and ending index chosen by the user), or select randomly (the number of images is chosen by the user).
     - Ask user to initialize new weights and biases, otherwise used the saved values.
@@ -34,22 +33,32 @@ Lets see a description of my project files and folders:
   - For CNN, this is the file that applies a kernel to an image.
   - Running this file allows you to select an image, and see the "kerneled" images.
 - `downPool.py`:
-  - Contains a function to down size an image by half (using max pooling).
+  - Contains a function to down size an image by half (using max pooling) and use Relu on it.
   - Running this files allows you the select an image and downSize it twice.
 - `convolution.py`:
   - Does filtering (from `kernel.py`), and down sizing (from `downPool.py`) on a range of images.
   - Running this files allows you the select a range of images and apply convolution to them.
   - Convolution currently is very slow, any recommendations to optimize will be appreciated.
-- `trainCNNEntireDataset.py`:
+- `trainCNNEntireDatasetSigmoid.py`:
   - Like `trainCNN.py`, but some choices are pre-selected.
   - It chooses the first [BATCH_SIZE] images from MNIST, updates the weights once, then chooses the next [BATCH_SIZE] images, updates the weights once again, and so on, until the entire dataset is used. This is known as one epoch.
   - At the end, the user will be given the option to save the new weights and biases.
   - The first [BATCH_SIZE] images will be shown using matplotlib.
-- `testImage.py`
+- `trainCNNEntireDatasetRelu.py`:
+  - like `trainCNNEntireDatasetSigmoid.py`, but uses Relu instead of sigmoid.
+- `testImage.py`:
+  - Allows you to pick test images from MNIST, and test the neural network.
 
 If you want to inform my about any errors, or give me any suggestions, feel free to message me at my LinkedIn (linkedin.com/in/uzair0845).
 
 ### Updates
+
+<u>update 7.1:</u>
+- In `trainCNN.py`, added the option to use Relu.
+- Renamed `trainCNNEntireDataset.py` to `trainCNNEntireDatasetSigmoid.py`
+- Added `trainCNNEntireDatasetRelu.py` which is like `trainCNNEntireDatasetSigmoid.py`, but uses Relu instead of sigmoid.
+- Drawing Board now takes a 196x196 drawing array and reduces it to 28x28 by using mean pooling.
+- First kernels array now has 6 kernels instead of the previous 4.
 
 <u>update 6.3:</u>
 - Kernels now have biases as well. They are now used in forward propagation and get updated in backward propagation.

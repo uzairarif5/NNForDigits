@@ -1,9 +1,11 @@
 import numpy as np
 import os
 
-inputArrSize = 784 #28 x 28 (width x height of images)
-hiddenL1ArrSize = 256
+kernels1Size = 6
+kernels2Size = 4
 hiddenL2ArrSize = 128
+hiddenL1ArrSize = 256
+inputArrSize = kernels1Size * kernels2Size * 7 * 7
 
 def initWeightsAndBiases():
     dir_path = os.path.dirname(os.path.realpath(__file__)) + "/"
@@ -62,17 +64,17 @@ def initWeightsAndBiases():
     file.close()
 
     file = open(dir_path +"dataStore/kernels1.npy",'wb')
-    np.save(file, (np.random.normal(0,1,size=(4,3,3)).astype(np.float32)))
+    np.save(file, (np.random.normal(0,1,size=(kernels1Size,3,3)).astype(np.float32)))
     file.close()
     file = open(dir_path +"dataStore/kernels2.npy",'wb')
-    np.save(file, (np.random.normal(0,1,size=(4,3,3)).astype(np.float32)))
+    np.save(file, (np.random.normal(0,1,size=(kernels2Size,3,3)).astype(np.float32)))
     file.close()
 
     file = open(dir_path +"dataStore/kernels1Biases.npy",'wb')
-    np.save(file, (np.random.normal(0,1,size=(4,)).astype(np.float32)))
+    np.save(file, (np.random.normal(0,1,size=(kernels1Size,)).astype(np.float32)))
     file.close()
     file = open(dir_path +"dataStore/kernels2Biases.npy",'wb')
-    np.save(file, (np.random.normal(0,1,size=(4,)).astype(np.float32)))
+    np.save(file, (np.random.normal(0,1,size=(kernels2Size,)).astype(np.float32)))
     file.close()
 
     print("values saved!!!")
