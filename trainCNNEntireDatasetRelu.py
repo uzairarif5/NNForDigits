@@ -8,7 +8,7 @@ from convolution import convGPU
 
 DIR_PATH = os.path.dirname(os.path.realpath(__file__))
 NUM_OF_EPOCH = 10
-LEARNING_RATE = 0.002
+LEARNING_RATE = 0.0005
 BATCH_SIZE = 200
 (IMAGES, LABELS) = geAllMNISTImgs()
 MAX_INDEX = len(LABELS)
