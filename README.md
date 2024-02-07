@@ -32,6 +32,7 @@ Lets see a description of my project files and folders:
 - `kernel.py`:
   - For CNN, this is the file that applies a kernel to an image.
   - Running this file allows you to select an image, and see the "kerneled" images.
+  - Keep in mind that the kernel <b>does not</b> get flipped.
 - `downPool.py`:
   - Contains a function to down size an image by half (using max pooling) and use Relu on it.
   - Running this files allows you the select an image and downSize it twice.
@@ -52,6 +53,10 @@ Lets see a description of my project files and folders:
 If you want to inform my about any errors, or give me any suggestions, feel free to message me at my LinkedIn (linkedin.com/in/uzair0845).
 
 ### Updates
+
+<u>update 7.2:</u>
+- In `trainCNN.py`, for choosing a new learning rate, the 0 to 1 range restriction is removed.
+- In `trainCNNEntireDatasetRelu.py`, added `accuracyArr` variable which stores the accuracy throughout the training and can be saved to `/dataStore/accuracy.txt`.
 
 <u>update 7.1:</u>
 - In `trainCNN.py`, added the option to use Relu.

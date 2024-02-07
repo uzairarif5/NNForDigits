@@ -6,7 +6,7 @@ import getNumbers
 from initWeightsAndBiases import initWeightsAndBiases, inputArrSize, hiddenL1ArrSize, hiddenL2ArrSize, kernels2Size, kernels1Size
 from convolution import convGPU
 
-INIT_LEARNING_RATE = 0.02
+INIT_LEARNING_RATE = 1
 MAX_UPDATES = 200 #max number of updates before new batch
 MIN_ERR = 0.01 #during updates, if loss is lower than MIN_ERR, than a new batch is used
 DIR_PATH = os.path.dirname(os.path.realpath(__file__))
@@ -149,14 +149,14 @@ def forwardPropagateRelu():
 def backPropagateRelu(learningRate):
 	global weightsAndBiasesDict, matricesForPassedPixels2, matricesForPassedPixels3
 	wAndBDict = weightsAndBiasesDict
-	repeatedCalArr1 = (outputArr - correctPosArr)#/(hiddenL2ArrSize+1)
+	repeatedCalArr1 = (outputArr - correctPosArr)/(hiddenL2ArrSize+1)
 	wAndBDict["link34"] -= (learningRate * ((np.transpose(hiddenL2Arr) @ repeatedCalArr1) + (LAMBDA3*wAndBDict["link34"])))/batchSize
 	wAndBDict["biases4"] -= (learningRate * np.sum(repeatedCalArr1, axis=0))/batchSize
-	repeatedCalArr2 = (repeatedCalArr1 @ np.transpose(wAndBDict["link34"]))/10#/(10*(hiddenL1ArrSize+1))
+	repeatedCalArr2 = (repeatedCalArr1 @ np.transpose(wAndBDict["link34"]))/(10*(hiddenL1ArrSize+1))
 	repeatedCalArr2 = np.where(hiddenL2Arr>0,repeatedCalArr2,0)
 	wAndBDict["link23"] -= (learningRate * ((np.transpose(hiddenL1Arr) @ repeatedCalArr2) + (LAMBDA2*wAndBDict["link23"])))/batchSize
 	wAndBDict["biases3"] -= (learningRate * np.sum(repeatedCalArr2, axis=0))/batchSize
-	repeatedCalArr3 = (repeatedCalArr2 @ np.transpose(wAndBDict["link23"]))/hiddenL2ArrSize#(hiddenL2ArrSize*(inputArrSize+1))
+	repeatedCalArr3 = (repeatedCalArr2 @ np.transpose(wAndBDict["link23"]))/(hiddenL2ArrSize*(inputArrSize+1))
 	repeatedCalArr3 = np.where(hiddenL1Arr>0,repeatedCalArr3,0)
 	wAndBDict["link12"] -= (learningRate * ((np.transpose(inputArr) @ repeatedCalArr3) + (LAMBDA1*wAndBDict["link12"])))/batchSize
 	wAndBDict["biases2"] -= (learningRate * np.sum(repeatedCalArr3, axis=0))/batchSize
@@ -193,10 +193,7 @@ def doTraining():
 		useRelu = False
 	while True:
 		if (input("Press 1 to use a new learning rate (current value: {}): ".format(lastLR)) == "1"):
-			inputVal= -1
-			while(inputVal < 0 or inputVal > 1):
-				inputVal = float(input("Choose num between 0 and 1: "))
-			lastLR = inputVal
+			lastLR = float(input("Type new learning rate: "))
 		for updates in range(MAX_UPDATES):
 			if(useRelu):
 				avgErr = forwardPropagateRelu()

@@ -7,8 +7,8 @@ from initWeightsAndBiases import inputArrSize, hiddenL1ArrSize, hiddenL2ArrSize,
 from convolution import convGPU
 
 DIR_PATH = os.path.dirname(os.path.realpath(__file__))
-NUM_OF_EPOCH = 10
-LEARNING_RATE = 0.001
+NUM_OF_EPOCH = 2
+LEARNING_RATE = 0.01
 BATCH_SIZE = 200
 (IMAGES, LABELS) = geAllMNISTImgs()
 MAX_INDEX = len(LABELS)

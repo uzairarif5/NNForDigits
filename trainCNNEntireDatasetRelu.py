@@ -7,8 +7,8 @@ from initWeightsAndBiases import inputArrSize, hiddenL1ArrSize, hiddenL2ArrSize,
 from convolution import convGPU
 
 DIR_PATH = os.path.dirname(os.path.realpath(__file__))
-NUM_OF_EPOCH = 10
-LEARNING_RATE = 0.0005
+NUM_OF_EPOCH = 1
+LEARNING_RATE = 0.8
 BATCH_SIZE = 200
 (IMAGES, LABELS) = geAllMNISTImgs()
 MAX_INDEX = len(LABELS)
@@ -18,6 +18,7 @@ LAMBDA1 = 0.01 #for input-hidden1 weights
 LAMBDA2 = 0.01 #for hidden1-hidden2 weights
 LAMBDA3 = 0.01 #for hidden2-output weights
 #Naming convention: Lambda x divided by no. training instances
+accuracyArr = []
 
 labels = None
 indices = None
@@ -123,23 +124,27 @@ def convAndForwardPropagationOnTestData():
 		return np.sum(TEST_LABELS == np.argmax(testOutputArr, axis=1))/len(TEST_LABELS)
 
 def doTraining():
-		epoch = 1
-		while epoch <= NUM_OF_EPOCH:
-				curImgIndPointer = 0
-				accuracy = 0
-				loopCounter = 1
-				while curImgIndPointer < MAX_INDEX:
-						setInitVar(curImgIndPointer)
-						accuracy += forwardPropagate(curImgIndPointer)
-						backPropagate(LEARNING_RATE)
-						curImgIndPointer += BATCH_SIZE
-						print("Epoch: {:2d} | ".format(epoch) + ("█"*round(curImgIndPointer*20/MAX_INDEX)) + ("_"*round(20-(curImgIndPointer*20/MAX_INDEX))) + " {:3d}%".format(round(curImgIndPointer*100/(MAX_INDEX)))  + " | Images used: {:5d}".format(curImgIndPointer) + " | Accuracy: {:.3f}% ".format((accuracy*100)/loopCounter), end="\r")
-						loopCounter += 1
-				epoch += 1
-				print()
-		print("Accuracy with test data: {:4.2f}%".format(convAndForwardPropagationOnTestData()*100))
-		if(input("Press 1 to save weights and biases: ") == "1"):
-				saveValues()
+	global accuracyArr
+	epoch = 1
+	accuracyArr = []
+	while epoch <= NUM_OF_EPOCH:
+			curImgIndPointer = 0
+			accuracy = 0
+			loopCounter = 1
+			accuracyArr.append([])
+			while curImgIndPointer < MAX_INDEX:
+					setInitVar(curImgIndPointer)
+					accuracy += forwardPropagate(curImgIndPointer)
+					accuracyArr[-1].append("{:.3f}".format(accuracy*100))
+					backPropagate(LEARNING_RATE)
+					curImgIndPointer += BATCH_SIZE
+					print("Epoch: {:2d} | ".format(epoch) + ("█"*round(curImgIndPointer*20/MAX_INDEX)) + ("_"*round(20-(curImgIndPointer*20/MAX_INDEX))) + " {:3d}%".format(round(curImgIndPointer*100/(MAX_INDEX)))  + " | Images used: {:5d}".format(curImgIndPointer) + " | Accuracy: {:.3f}% ".format((accuracy*100)/loopCounter), end="\r")
+					loopCounter += 1
+			epoch += 1
+			print()
+	print("Accuracy with test data: {:4.2f}%".format(convAndForwardPropagationOnTestData()*100))
+	if(input("Press 1 to save weights and biases: ") == "1"):
+			saveValues()
 
 def saveValues():
 		wAndBDict = weightsAndBiasesDict
@@ -165,6 +170,9 @@ def saveValues():
 		file.close()
 		file = open(DIR_PATH + "/dataStore/arrOutput.txt",'w')
 		np.savetxt(file, outputArr[-1],fmt='%.3f',delimiter="\t")
+		file.close()
+		file = open("dataStore/accuracy.txt",'w')
+		np.savetxt(file, accuracyArr, fmt="%.3f")
 		file.close()
 		print("!!!!!!!!Values Saved!!!!!!!!!!!!!")
 
