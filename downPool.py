@@ -9,13 +9,9 @@ def downPoolAndReluGPU(img, filteredImg, dummyArr, passedMatrixImg, outputSmallI
   #edges are all expected to be zero, actual img is expected to be inside larger zero matrix
   for r in range(0, len(filteredImg), 2):
     for c in range(0, len(filteredImg[0]), 2):
-      curVal = 0
-      selectedR = 0
-      selectedC = 0
-      if(filteredImg[r][c] > curVal):
-        curVal = filteredImg[r][c] 
-        selectedR = r
-        selectedC = c
+      curVal = filteredImg[r][c] 
+      selectedR = r
+      selectedC = c
       if(filteredImg[r][c+1] > curVal):
         curVal = filteredImg[r][c+1] 
         selectedR = r
@@ -28,59 +24,61 @@ def downPoolAndReluGPU(img, filteredImg, dummyArr, passedMatrixImg, outputSmallI
         curVal = filteredImg[r+1][c+1] 
         selectedR = r+1
         selectedC = c+1
-      if(curVal != 0):
-        r2 = selectedR//2
-        c2 = selectedC//2
+      r2 = selectedR//2
+      c2 = selectedC//2
+      if(curVal<0):
+        outputSmallImages[r2][c2] = 0.01*curVal
+        for i in range(3):
+          for j in range(3):
+            if(i<0 or selectedR+i-1>=len(img) or j<0 or selectedC+j-1>=len(img[0])):
+              continue
+            passedMatrixImg[r2,c2,i,j] = 0.01*img[selectedR+i-1][selectedC+j-1]
+      else:
         outputSmallImages[r2][c2] = curVal
         for i in range(3):
           for j in range(3):
-            passedMatrixImg[r2,c2,i,j] += img[selectedR+i-1][selectedC+j-1]
+            if(i<0 or selectedR+i-1>=len(img) or j<0 or selectedC+j-1>=len(img[0])):
+              continue
+            passedMatrixImg[r2,c2,i,j] = img[selectedR+i-1][selectedC+j-1]
 
 @nb.guvectorize('(float32[:,:,:,:], float32[:,:], float32[:,:], float32[:,:,:,:])','(m,m,i,i),(m,m),(n,n)->(n,n,i,i)',target='cuda')
 def downPoolAndReluGPUForPassedMatrix(passedMat, filteredImgs, dummyArr, outputImg):
-  for r in range(0,len(passedMat[0])//2,2):
-    for c in range(0,len(passedMat[0][0])//2,2):
-      curVal = 0
-      selectedR = 0
-      selectedC = 0
-      if(filteredImgs[r][c] > curVal):
-        curVal = filteredImgs[r][c]
-        selectedR = r
-        selectedC = c
-      if(filteredImgs[r][c+1] > curVal):
-        curVal = filteredImgs[r][c+1]
+  for r in range(0,len(filteredImgs),2):
+    for c in range(0,len(filteredImgs[0]),2):
+      selectedR = r
+      selectedC = c
+      if(filteredImgs[r][c+1] > filteredImgs[r][c]):
         selectedR = r
         selectedC = c+1
-      if(filteredImgs[r+1][c] > curVal):
-        curVal = filteredImgs[r+1][c]
+      if(filteredImgs[r+1][c] > filteredImgs[r][c+1]):
         selectedR = r+1
         selectedC = c
-      if(filteredImgs[r+1][c+1] > curVal):
-        curVal = filteredImgs[r+1][c+1]
+      if(filteredImgs[r+1][c+1] > filteredImgs[r+1][c]):
         selectedR = r+1
         selectedC = c+1
-      if(curVal == 0):
-        for i in range(3):
-          for j in range(3):
-            outputImg[selectedR//2, selectedC//2,i,j] = passedMat[selectedR, selectedC,i,j]
+      for i in range(3):
+        for j in range(3):
+          outputImg[selectedR//2, selectedC//2,i,j] = passedMat[selectedR, selectedC,i,j]
 
 def downPoolAndReluGPUWrapper(imgs, filteredImgs = None):
   if(filteredImgs is None):
     filteredImgs = imgs
-  inputArr = np.zeros((len(imgs),len(imgs[0])+2, len(imgs[0][0])+2), dtype=np.float32)
-  inputArr[:,1:-1,1:-1] = imgs[:,:,:]
   dummyArr = np.zeros((len(imgs[0])//2, len(imgs[0][0])//2, 3, 3), dtype=np.float32)
   passedMatrixImg = np.zeros((len(imgs), len(imgs[0])//2, len(imgs[0][0])//2, 3, 3), dtype=np.float32)
   outputSmallImages = np.zeros((len(imgs), len(imgs[0])//2, len(imgs[0][0])//2), dtype=np.float32)
-  #passedMatrixImg will use inputArr
-  #outputSmallImages will use filteredImgs
-  passedMatrixImg, outputSmallImages = downPoolAndReluGPU(inputArr, filteredImgs, dummyArr, passedMatrixImg, outputSmallImages)
+  passedMatrixImg, outputSmallImages = downPoolAndReluGPU(imgs, filteredImgs, dummyArr, passedMatrixImg, outputSmallImages)
   return passedMatrixImg, outputSmallImages
 
 if __name__ == '__main__':
   #run this file to test down pooling
-  imgs, labels, indices = getImagesFromMNIST()
-  passedMatrixImg, smallImages = downPoolAndReluGPUWrapper(imgs)
-  passedMatrixImg2, smallImages2 = downPoolAndReluGPUWrapper(smallImages)
-  showImgsOnPlt(smallImages2, labels, indices)
+  passedMatrixImg, smallImages = downPoolAndReluGPUWrapper(np.array([[[0.8,0,0,0],
+                                                                      [0,0.5,0.3,0],
+                                                                      [0,0.4,0.1,0],
+                                                                      [0,0,0,0]],
+                                                                      [[0,0,0,0],
+                                                                      [0,0.7,0.6,0],
+                                                                      [0,0.1,-0.8,0],
+                                                                      [0,0,0,0.9]]]))
+  showImgsOnPlt(smallImages, [1,2],[1,2])
+  showImgsOnPlt(passedMatrixImg[:,:,:,1,1], [1,2],[1,2])
   

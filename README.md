@@ -13,10 +13,22 @@ Lets see a description of my project files and folders:
 - `showNumber.py`:
   - Contains `showImgsOnPlt`, which shows images on a matplotlib graph.
   - Running this files allows you to see images from MNIST or ownDataset.
+- `kernel.py`:
+  - For CNN, this is the file that applies a kernel to an image.
+  - Running this file allows you to select an image, and see the "kerneled" images.
+  - Keep in mind that the kernel <b>does not</b> get flipped, so what being done is actually cross-correlation.
+- `downPool.py`:
+  - Contains a function to down size an image by half (using max pooling) and use Relu on it.
+  - Running this files allows you the select an image and downSize it twice.
+- `convolution.py`:
+  - Does filtering (from `kernel.py`), and down sizing (from `downPool.py`) on a range of images.
+  - Running this files allows you the select a range of images and apply convolution to them.
+  - Convolution currently is very slow, any recommendations to optimize will be appreciated.
 - `trainCNN.py`:
   - The main file that contains the actual neural network.
   - Understanding the back propagation can be confusing, for more detail see `/imagesForBackPro`.
   - Run this file to see the neural network in action. While training, selected images will be shown using `showImgsOnPlt` from `showNumber.py`.
+  - The neural network will either use sigmoid or reLu (leaky version) (the choice will be given as a user input). Keep in mind, when I say "reLu", it's not actually reLu because the function divides the final result by the number of nodes in the previous layer. For example, a node in layer \(N\) gets it's value by multiplying all the nodes in layer \(N-1\) with the weights and summing them, then adding the bias, then clipping it to \(0.01\) if it's less than \(0.01\), and then dividing it by the number of nodes in layer \(n-1\).
   - Several prompts get asked during runtime, some of them include:
     - "Press 1 to initialize weights and biases": Either use the last saved values or make new ones.
     - "Press 1 to use a new learning rate"
@@ -29,17 +41,6 @@ Lets see a description of my project files and folders:
     - After training is done, the user has the option to save the weights and biases, train again using the same images or train again with different images.
 - `/imagesForBackPro`:
   - Contains my notes on my back propagation formulas (helps understand the back propagation algorithm in `trainNN.py`).
-- `kernel.py`:
-  - For CNN, this is the file that applies a kernel to an image.
-  - Running this file allows you to select an image, and see the "kerneled" images.
-  - Keep in mind that the kernel <b>does not</b> get flipped.
-- `downPool.py`:
-  - Contains a function to down size an image by half (using max pooling) and use Relu on it.
-  - Running this files allows you the select an image and downSize it twice.
-- `convolution.py`:
-  - Does filtering (from `kernel.py`), and down sizing (from `downPool.py`) on a range of images.
-  - Running this files allows you the select a range of images and apply convolution to them.
-  - Convolution currently is very slow, any recommendations to optimize will be appreciated.
 - `trainCNNEntireDatasetSigmoid.py`:
   - Like `trainCNN.py`, but some choices are pre-selected.
   - It chooses the first [BATCH_SIZE] images from MNIST, updates the weights once, then chooses the next [BATCH_SIZE] images, updates the weights once again, and so on, until the entire dataset is used. This is known as one epoch.
@@ -50,9 +51,14 @@ Lets see a description of my project files and folders:
 - `testImage.py`:
   - Allows you to pick test images from MNIST, and test the neural network.
 
+As of update 8.1, the model was trained with leaky relu and is 94% accurate with the test data.
 If you want to inform my about any errors, or give me any suggestions, feel free to message me at my LinkedIn (linkedin.com/in/uzair0845).
 
 ### Updates
+
+<u>update 8.1:</u>
+- Relu is changed to Leaky ReLU.
+- There was an error on how convolution is calculated, and how the kernel's back propagation updates is done. That is fixed now... I think.
 
 <u>update 7.2:</u>
 - In `trainCNN.py`, for choosing a new learning rate, the 0 to 1 range restriction is removed.

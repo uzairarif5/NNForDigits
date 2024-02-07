@@ -6,9 +6,9 @@ kernels2Size = 4
 hiddenL2ArrSize = 128
 hiddenL1ArrSize = 256
 inputArrSize = kernels1Size * kernels2Size * 7 * 7
+dir_path = os.path.dirname(os.path.realpath(__file__)) + "/"
 
 def initWeightsAndBiases():
-    dir_path = os.path.dirname(os.path.realpath(__file__)) + "/"
     print("Initializing w's and b's")
     arr = []
     for i in range(inputArrSize):
@@ -63,22 +63,43 @@ def initWeightsAndBiases():
     np.savetxt(file,(np.random.rand(10)))
     file.close()
 
+    print("new Weights and Biases saved!!!")
+
+
+def initKernels():
+    
+    kernels1 = np.random.normal(0,1,size=(kernels1Size,3,3)).astype(np.float32)
+    kernels2 = np.random.normal(0,1,size=(kernels2Size,3,3)).astype(np.float32)
     file = open(dir_path +"dataStore/kernels1.npy",'wb')
-    np.save(file, (np.random.normal(0,1,size=(kernels1Size,3,3)).astype(np.float32)))
+    np.save(file, kernels1)
     file.close()
     file = open(dir_path +"dataStore/kernels2.npy",'wb')
-    np.save(file, (np.random.normal(0,1,size=(kernels2Size,3,3)).astype(np.float32)))
+    np.save(file, kernels2)
     file.close()
 
+    file = open(dir_path +"dataStore/kernels1.txt",'w')
+    np.savetxt(file, np.reshape(kernels1,(kernels1Size, 9)), fmt="%4.3f")
+    file.close()
+    file = open(dir_path +"dataStore/kernels2.txt",'w')
+    np.savetxt(file, np.reshape(kernels2,(kernels2Size, 9)), fmt="%4.3f")
+    file.close()
+
+    kernels1Biases = np.random.normal(0,1,size=(kernels1Size,)).astype(np.float32)
+    kernels2Biases = np.random.normal(0,1,size=(kernels2Size,)).astype(np.float32)
     file = open(dir_path +"dataStore/kernels1Biases.npy",'wb')
-    np.save(file, (np.random.normal(0,1,size=(kernels1Size,)).astype(np.float32)))
+    np.save(file, kernels1Biases)
     file.close()
     file = open(dir_path +"dataStore/kernels2Biases.npy",'wb')
-    np.save(file, (np.random.normal(0,1,size=(kernels2Size,)).astype(np.float32)))
+    np.save(file, kernels2Biases)
     file.close()
 
-    print("values saved!!!")
-
+    file = open(dir_path +"dataStore/kernels1Biases.txt",'w')
+    np.savetxt(file, kernels1Biases, fmt="%4.3f")
+    file.close()
+    file = open(dir_path +"dataStore/kernels2Biases.txt",'w')
+    np.savetxt(file, kernels2Biases, fmt="%4.3f")
+    file.close()
+    print("new kernels saved!!!")
 
 if(__name__ == "__main__"):
-    initWeightsAndBiases()
+    initKernels()

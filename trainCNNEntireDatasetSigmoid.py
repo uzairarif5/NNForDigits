@@ -87,26 +87,25 @@ def backPropagate(learningRate):
 	wAndBDict["biases2"] -= (learningRate * np.sum(repeatedCalArr3, axis=0))/BATCH_SIZE
 	kernelMul = kernels2Size*kernels1Size
 	dl_da = ((repeatedCalArr3 @ np.transpose(wAndBDict["link12"]))/hiddenL1ArrSize).reshape(BATCH_SIZE,kernelMul,7,7)
-	inputReshaped = inputArr.reshape(BATCH_SIZE,kernelMul,7,7)
-	dl_daForBiases = np.where(inputReshaped == 0, inputReshaped, dl_da)
+	summed_dl_da = np.sum(np.sum(np.sum(dl_da,axis=0),axis=1),axis=1)/49
+	repeatedCalForBiases2 = learningRate*summed_dl_da
 	matricesForPassedPixels2 = matricesForPassedPixels2.reshape(BATCH_SIZE,kernelMul,7,7,3,3)
 	matricesForPassedPixels3 = matricesForPassedPixels3.reshape(BATCH_SIZE,kernelMul,7,7,3,3)
-	summedKernels = np.sum(np.sum(wAndBDict["kernels2"], axis=1), axis=1)/9
+	for n in range(3):
+		for m in range(3):
+			matricesForPassedPixels2[:,:,:,:,n,m] *= dl_da[:,:,:,:]
+	repeatedCalForKernel2 = learningRate*np.sum(np.sum(np.sum(matricesForPassedPixels2, axis=0), axis=1),axis=1)/BATCH_SIZE
+	repeatedCalForKernel2 /= kernels1Size
+	repeatedCalForKernel1 = learningRate*np.sum(np.sum(np.sum(matricesForPassedPixels3, axis=0), axis=1),axis=1)/BATCH_SIZE
+	repeatedCalForKernel1 /= kernels2Size
+	kernelsAsOneVal = learningRate*np.sum(np.sum(wAndBDict["kernels2"], axis=1), axis=1)/9
 	k = 0
 	for i in range(kernels1Size):
 		for j in range(kernels2Size):
-			wAndBDict["kernels2Biases"][j%kernels2Size] -= learningRate*np.sum(np.sum(np.sum(dl_daForBiases,axis=0),axis=1),axis=1)[j]
-			for n in range(3):
-				for m in range(3):
-					matricesForPassedPixels2[:,k,:,:,n,m] *= dl_da[:,k,:,:]
-			wAndBDict["kernels2"][j%kernels2Size] -= learningRate * (np.sum(np.sum(np.sum(matricesForPassedPixels2, axis=0), axis=1),axis=1)[k])
-			dl_da[:,k,:,:] *= summedKernels[j%kernels2Size]
-			dl_daForBiases[:,k,:,:] *= summedKernels[j%kernels2Size]
-			wAndBDict["kernels1Biases"][i%kernels1Size] -= learningRate * np.sum(np.sum(np.sum(dl_daForBiases, axis=0), axis=1), axis=1)[k]
-			for n in range(3):
-				for m in range(3):
-					matricesForPassedPixels3[:,k,:,:,n,m] *= dl_da[:,k,:,:]
-			wAndBDict["kernels1"][i%kernels1Size] -= learningRate * (np.sum(np.sum(np.sum(matricesForPassedPixels3, axis=0), axis=1),axis=1)[k])
+			wAndBDict["kernels2"][j] -= repeatedCalForKernel2[k]
+			wAndBDict["kernels2Biases"][j] -=  repeatedCalForBiases2[k]
+			wAndBDict["kernels1"][i] -= summed_dl_da[k] * kernelsAsOneVal[j] * repeatedCalForKernel1[k]
+			wAndBDict["kernels1Biases"][i] -= summed_dl_da[k] * kernelsAsOneVal[j]
 			k += 1
 	weightsAndBiasesDict = wAndBDict
 
