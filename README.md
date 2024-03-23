@@ -56,6 +56,9 @@ If you want to inform my about any errors, or give me any suggestions, feel free
 
 ### Updates
 
+<u>update 8.2:</u>
+- Added images to explain kernel stuff.
+
 <u>update 8.1:</u>
 - Relu is changed to Leaky ReLU.
 - There was an error on how convolution is calculated, and how the kernel's back propagation updates is done. That is fixed now... I think.
